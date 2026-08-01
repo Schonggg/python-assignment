@@ -8,8 +8,7 @@ def main():
 
             customer = login()
             if not customer:
-                continue3
-                q
+                continue
 
             if customer["role"] in ("admin", "staff"):
                 admin_menu()
@@ -17,11 +16,9 @@ def main():
                 customer_menu(customer["username"])
         elif choice == "2":
             from module.authentication import register_username, register_password
-            from module.utils import customer_code
             new_username = register_username()
-            line = customer_code()
             if new_username:
-                register_password(line, new_username)
+                register_password(new_username)
                 
         elif choice in ("3", "q", "quit", "exit"):
             break

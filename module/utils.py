@@ -1,27 +1,58 @@
-# customer_code generation
-# booking_id generation
-# read the data inside the file
-# write the data into the file
-
 import os
-from module.authentication import ensure_file
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(BASE_DIR, "data")
 CUSTOMER_FILE = os.path.join(DATA_DIR, "customers.txt")
-BOOKING_FILE = os.path.join(DATA_DIR, "booking.txt")
+STAFF_FILE = os.path.join(DATA_DIR, "staff.txt")
+SERVICE_FILE = os.path.join(DATA_DIR, "service.txt")
+BOOKING_FILE = os.path.join(DATA_DIR, "bookings.txt")
+MAINTENANCE_FILE = os.path.join(DATA_DIR, "maintenance.txt")
+PAYMENT_FILE = os.path.join(DATA_DIR, "payments.txt")
+
+
+def ensure_file(path):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    if not os.path.exists(path):
+        with open(path, "w", encoding="utf-8"):
+            pass
+    return path
+
+
+def read_lines(path):
+    ensure_file(path)
+    with open(path, "r", encoding="utf-8") as handle:
+        return [line.strip() for line in handle if line.strip()]
+
+
+def write_lines(path, lines):
+    ensure_file(path)
+    with open(path, "w", encoding="utf-8") as handle:
+        if lines:
+            handle.write("\n".join(lines) + "\n")
+
+
+def the_code(path, prefix):
+    ensure_file(path)
+    with open(path, "r", encoding="utf-8") as handle:
+        next_number = len(handle.readlines()) + 1
+    return f"{prefix}{next_number:03d}"
+
+
+def primary_key(path):
+    if path == CUSTOMER_FILE:
+        return the_code(path, "C")
+    if path == BOOKING_FILE:
+        return the_code(path, "B")
+    if path == STAFF_FILE:
+        return the_code(path, "ST")
+    if path == SERVICE_FILE:
+        return the_code(path, "SV")
+    if path == MAINTENANCE_FILE:
+        return the_code(path, "M")
+    if path == PAYMENT_FILE:
+        return the_code(path, "P")
+    return the_code(path, "")
+
 
 def customer_code():
-    ensure_file(CUSTOMER_FILE)
-    with open(CUSTOMER_FILE, "r", encoding="utf-8") as line_count:
-        return len(line_count.readlines())
-
-
-def booking_id():
-    ensure_file(BOOKING_FILE)
-
-    while True:
-        with open(BOOKING_FILE, "r", encoding = "utf-8") as booking_count:
-            booking_id = len(booking_count.readlines())
-
-
+    return primary_key(CUSTOMER_FILE)

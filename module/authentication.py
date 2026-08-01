@@ -1,42 +1,31 @@
 import os
-
+from module.utils import CUSTOMER_FILE, ensure_file, primary_key, read_lines
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(BASE_DIR, "data")
 CUSTOMER_FILE = os.path.join(DATA_DIR, "customers.txt")
 STAFF_FILE = os.path.join(DATA_DIR, "staff.txt")
 SERVICE_FILE = os.path.join(DATA_DIR, "service.txt")
+BOOKING_FILE = os.path.join(DATA_DIR, "booking.txt")
+MAINTENANCE_FILE = os.path.join(DATA_DIR, "maintenance.txt")
+PAYMENT_FILE = os.path.join(DATA_DIR, "payment.txt")
 
-
-def ensure_file(path):
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    if not os.path.exists(path):
-        with open(path, "w", encoding="utf-8"):
-            pass
-    return path
-
-
-def read_lines(path):
-    ensure_file(path)
-    with open(path, "r", encoding="utf-8") as handle:
-        return [line.strip() for line in handle if line.strip()]
 
 
 def load_customers():
     customers = []
     for line in read_lines(CUSTOMER_FILE):
         parts = [part.strip() for part in line.split(",")]
-        if len(parts) < 2:
+        if len(parts) < 4:
             continue
 
-        username = parts[0]
-        password = parts[1]
-        if len(parts) >= 3 and parts[2]:
-            role = parts[2].lower()
-        else:
-            role = "admin" if username.lower() == "admin" else "customer"
+        code = parts[0]
+        username = parts[1]
+        password = parts[2]
+        role = parts[3].lower() if parts[3] else "customer"
 
         customers.append({
+            "code": code,
             "username": username,
             "password": password,
             "role": role,
@@ -130,9 +119,8 @@ def register_username():
         return username
 
 
-def register_password(line, username):
+def register_password(username):
     ensure_file(CUSTOMER_FILE)
-
     while True:
         password1 = input("\nCreate password: ")
         password2 = input("Confirm password: ")
@@ -145,8 +133,10 @@ def register_password(line, username):
             print("\nPassword must contain at least 6 characters. Please try again.")
             continue
 
+        code = primary_key(CUSTOMER_FILE)
+
         with open(CUSTOMER_FILE, "a", encoding="utf-8") as handle:
-            handle.write(f"C{line + 1:03d}, {username}, {password1}, customer\n")
+            handle.write(f"{code}, {username}, {password1}, customer\n")
             
 
         print("\nAccount successfully created!")
@@ -188,12 +178,6 @@ def login():
 
 
 if __name__ == "__main__":
-    try:
-        from module.utils import customer_code
-    except ImportError:
-        from utils import customer_code
-
     new_username = register_username()
     if new_username:
-        line = customer_code()
-        register_password(line, new_username)
+        register_password(new_username)

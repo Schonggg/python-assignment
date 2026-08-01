@@ -1,3 +1,4 @@
 C1, TEST1, 123456, customer
 C2, test2, 123456, customer
 C003, DESMOND, 123456, customer
+C004, Schong, 123456, customer
