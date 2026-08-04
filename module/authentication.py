@@ -1,5 +1,5 @@
 import os
-from module.utils import CUSTOMER_FILE, ensure_file, primary_key, read_lines
+from module.utils import CUSTOMER_FILE, ensure_file, primary_key, read_lines, RED, RESET
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(BASE_DIR, "data")
@@ -105,7 +105,7 @@ def register_username():
             continue
 
         if username.lower() in forbidden:
-            print("\nFUCK YOU NIGGA.")
+            print(f"{RED}FUCK YOU NIGGA.\n {RESET}")
             continue
 
         if username.lower() == "admin":
@@ -126,7 +126,7 @@ def register_password(username):
         password2 = input("Confirm password: ")
 
         if password1 != password2:
-            print("\nPassword doesn't match! Please try again.")
+            print(f"\nPassword doesn't match! Please try again.")
             continue
 
         if len(password1) < 6:
