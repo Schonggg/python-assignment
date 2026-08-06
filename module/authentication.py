@@ -1,5 +1,8 @@
 import os
-from module.utils import CUSTOMER_FILE, ensure_file, primary_key, read_lines, RED, RESET
+import time
+import random
+from module.utils import CUSTOMER_FILE, ensure_file, primary_key, read_lines, RED, GREEN, MAGENTA, RESET, progress_bar
+
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(BASE_DIR, "data")
@@ -149,6 +152,7 @@ def login():
 
     if not customers and not staff_members:
         print("No customer records found. Please register first.")
+        return None
 
     while True:
         username = input("Please enter username (or 'q' to cancel): ").strip()
@@ -159,12 +163,18 @@ def login():
 
         for staff_member in staff_members:
             if staff_member["username"] == username and staff_member["password"] == password:
-                print(f"\nLogin successful. Welcome, {username}!")
+                for i in range(101):
+                    time.sleep(random.uniform(0.001, 0.1))
+                    progress_bar(i, 100, prefix='Verifying:', suffix='Complete', length=50)
+                print(f"\nLogin successful. Welcome, {MAGENTA}{username}{RESET}!")
                 return staff_member
 
         for customer in customers:
             if customer["username"] == username and customer["password"] == password:
-                print(f"\nLogin successful. Welcome, {username}!")
+                for i in range(101):
+                    time.sleep(random.uniform(0.00000001, 0.001))
+                    progress_bar(i, 100, prefix='Verifying:', suffix='Complete', length=50)
+                print(f"\nLogin successful. Welcome, {MAGENTA}{username}{RESET}!")
                 return customer
 
         print("Invalid username or password. Please try again.")

@@ -1,4 +1,6 @@
 import os
+import sys
+
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(BASE_DIR, "data")
@@ -61,4 +63,55 @@ BLUE = '\u001b[34m'
 MAGENTA = '\u001b[35m'
 CYAN = '\u001b[36m'
 WHITE = '\u001b[37m'
+
+
+BG_BLACK = '\u001b[40m'
+BG_RED = '\u001b[41m' 
+BG_GREEN = '\u001b[42m' 
+BG_YELLOW = '\u001b[43m' 
+BG_BLUE = '\u001b[44m' 
+BG_MAGENTA = '\u001b[45m' 
+BG_CYAN = '\u001b[46m' 
+BG_WHITE = '\u001b[47m' 
+
 RESET ='\u001b[0m'
+
+
+def enable_ansi_colors():
+    if os.name != 'nt':
+        return
+
+    try:
+        import ctypes
+        kernel32 = ctypes.windll.kernel32
+        handle = kernel32.GetStdHandle(-11)
+        if handle:
+            mode = ctypes.c_ulong()
+            if kernel32.GetConsoleMode(handle, ctypes.byref(mode)):
+                kernel32.SetConsoleMode(handle, mode.value | 0x0004)
+    except Exception:
+        pass
+
+
+enable_ansi_colors()
+
+
+def progress_bar(iteration, total, prefix='', suffix='', length=30, fill='\u2588'):
+    if total <= 0:
+        total = 1
+
+    percent = ("{0:.1f}").format(100 * (iteration / float(total)))
+    filled_length = int(length * iteration // total)
+    bar = fill * filled_length + '-' * (length - filled_length)
+    line = f'\r{prefix} |{bar}| {percent}% {suffix}'
+    if iteration >= total:
+        line = f"{GREEN}{line}{RESET}"
+
+    sys.stdout.write(line)
+    sys.stdout.flush()
+
+# Example usage
+#for i in range(101):
+#    time.sleep(random.uniform(0.00000001, 0.001))
+#    progress_bar(i, 100, prefix='Verifying:', suffix='Complete', length=50)
+#print(f"\nLogin successful. Welcome, {username}!")
