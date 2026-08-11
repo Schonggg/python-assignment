@@ -1,15 +1,20 @@
 import os
 import sys
+import date
 
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(BASE_DIR, "data")
-CUSTOMER_FILE = os.path.join(DATA_DIR, "customers.txt")
-STAFF_FILE = os.path.join(DATA_DIR, "staff.txt")
-SERVICE_FILE = os.path.join(DATA_DIR, "service.txt")
+
 BOOKING_FILE = os.path.join(DATA_DIR, "bookings.txt")
+CUSTOMER_FILE = os.path.join(DATA_DIR, "customers.txt")
+EQUIPMENT_FILE = os.path.join(DATA_DIR, "equipment.txt")
 MAINTENANCE_FILE = os.path.join(DATA_DIR, "maintenance.txt")
 PAYMENT_FILE = os.path.join(DATA_DIR, "payments.txt")
+SCHEDULE_FILE = os.path.join(DATA_DIR, "schedules.txt")
+SERVICE_FILE = os.path.join(DATA_DIR, "service.txt")
+LOG_FILE = os.path.join(DATA_DIR, "logs.txt")
+USER_FILE = os.path.join(DATA_DIR, "users.txt")
 
 
 def ensure_file(path):
@@ -34,84 +39,135 @@ def write_lines(path, lines):
 
 
 def the_code(path, prefix):
-    ensure_file(path)
-    with open(path, "r", encoding="utf-8") as handle:
-        next_number = len(handle.readlines()) + 1
+    lines = read_lines(path)
+    if len(lines) <= 1:
+        return f"{prefix}001"
+
+    last_line = lines[-1]
+
+    try:
+        last_id = last_line.split("|")[0].strip()
+
+        numeric_part = last_id.replace(prefix, "")
+        next_number = int(numeric_part) + 1
+
+    except (ValueError, IndexError):
+        next_number = len(lines)
+
     return f"{prefix}{next_number:03d}"
 
 
 def primary_key(path):
-    if path == CUSTOMER_FILE:
-        return the_code(path, "C")
-    if path == BOOKING_FILE:
-        return the_code(path, "B")
-    if path == STAFF_FILE:
-        return the_code(path, "ST")
-    if path == SERVICE_FILE:
-        return the_code(path, "SV")
-    if path == MAINTENANCE_FILE:
-        return the_code(path, "M")
-    if path == PAYMENT_FILE:
-        return the_code(path, "P")
-    return the_code(path, "")
 
-BLACK ='\u001b[30m'
-RED ='\u001b[31m'
-GREEN = '\u001b[32m' 
-YELLOW = '\u001b[33m'
-BLUE = '\u001b[34m'
-MAGENTA = '\u001b[35m'
-CYAN = '\u001b[36m'
-WHITE = '\u001b[37m'
+    prefix_map = {
+        BOOKING_FILE: "BK",
+        CUSTOMER_FILE: "CUST",
+        EQUIPMENT_FILE: "EQ",
+        MAINTENANCE_FILE: "MNT",
+        PAYMENT_FILE: "PAY",
+        SCHEDULE_FILE: "SCH",
+        SERVICE_FILE: "SV",
+        LOG_FILE: "LOG",
+        USER_FILE: "USR"        
+    }
+    prefix = prefix_map.get(path, "")
+    return the_code(path, prefix)
 
+RESET      ='\u001b[0m'
+BOLD       ='\u001b[1m'
+UNDERLINE  ='\u001b[4m'
 
-BG_BLACK = '\u001b[40m'
-BG_RED = '\u001b[41m' 
-BG_GREEN = '\u001b[42m' 
-BG_YELLOW = '\u001b[43m' 
-BG_BLUE = '\u001b[44m' 
+BLACK      ='\u001b[30m'
+RED        ='\u001b[31m'
+GREEN      = '\u001b[32m' 
+YELLOW     = '\u001b[33m'
+BLUE       = '\u001b[34m'
+MAGENTA    = '\u001b[35m'
+CYAN       = '\u001b[36m'
+WHITE      = '\u001b[37m'
+
+#For background
+BG_BLACK   = '\u001b[40m'
+BG_RED     = '\u001b[41m' 
+BG_GREEN   = '\u001b[42m' 
+BG_YELLOW  = '\u001b[43m' 
+BG_BLUE    = '\u001b[44m' 
 BG_MAGENTA = '\u001b[45m' 
-BG_CYAN = '\u001b[46m' 
-BG_WHITE = '\u001b[47m' 
+BG_CYAN    = '\u001b[46m' 
+BG_WHITE   = '\u001b[47m' 
 
-RESET ='\u001b[0m'
-
-
-def enable_ansi_colors():
-    if os.name != 'nt':
-        return
-
-    try:
-        import ctypes
-        kernel32 = ctypes.windll.kernel32
-        handle = kernel32.GetStdHandle(-11)
-        if handle:
-            mode = ctypes.c_ulong()
-            if kernel32.GetConsoleMode(handle, ctypes.byref(mode)):
-                kernel32.SetConsoleMode(handle, mode.value | 0x0004)
-    except Exception:
-        pass
-
-
-enable_ansi_colors()
-
+def color(text, color_code, bold=False):
+    style = f"{BOLD}{color_code}" if bold else color_code
+    return f"{style}{text}{RESET}"
 
 def progress_bar(iteration, total, prefix='', suffix='', length=30, fill='\u2588'):
-    if total <= 0:
-        total = 1
+    total = max(1, total)
+    iteration = min(iteration, total)
 
-    percent = ("{0:.1f}").format(100 * (iteration / float(total)))
+    percent_num = 100 * (iteration / float(total))
     filled_length = int(length * iteration // total)
-    bar = fill * filled_length + '-' * (length - filled_length)
-    line = f'\r{prefix} |{bar}| {percent}% {suffix}'
-    if iteration >= total:
-        line = f"{GREEN}{line}{RESET}"
 
+    current_color = GREEN if iteration >= total else ""
+
+    bar = fill * filled_length + '-' * (length - filled_length)
+    colored_bar = f"{current_color}{bar}{RESET}"
+
+    line = f'\r{BOLD}{prefix}{RESET} |{colored_bar}| {percent_num:.1f}% {suffix}'
     sys.stdout.write(line)
     sys.stdout.flush()
 
-# Example usage
-#for i in range(101):
-#    time.sleep(random.uniform(0.00000001, 0.001))
-#    progress_bar(i, 100, prefix='Verifying:', suffix='Complete', length=50)
-#print(f"\nLogin successful. Welcome, {username}!")
+    if iteration >= 100:
+        sys.stdout.write("\n")
+        sys.stdout.flush()
+
+#Example usage:
+#
+#custoemer = read_lines("customers.txt")
+#customer_count = len(customers)
+
+#print(f"Start printing {customer_count}customer's loyalty tier...")
+
+#for index, customer in enumerate(customers, start=1):
+#   update_customer_loyalty(customer)
+#   time.sleep(0.05)
+
+
+#   customer_name = customer.get('Full_Name', 'Unknown')
+#   progress_bar(
+#        iteration=index,
+#        total=total_tasks,
+#        prefix='Updating Customers: ',
+#        suffix=f'({index}/{total_tasks}) Processing {customer_name}',
+#        length = 30
+#    )
+
+
+def validate_date(date_str):
+    if len(date_str) != 10:
+        return False
+
+    if date_str[4] != "-" or date_str[6] != "-":
+        return False
+
+    parts = date_str.split("-")
+    if len(parts) != 3:
+        return False
+
+    try:
+        year = int(parts[0])
+        month = int(parts[1])
+        date = int(parts[2])
+
+        if year < 2026 or year > 2045:
+            return False
+
+        if month < 1 or month >12:
+            return False
+
+        if date < 1 or date > 31:
+            return False
+
+        return True
+
+    except ValueError:
+        return False 
