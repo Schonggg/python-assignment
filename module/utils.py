@@ -1,7 +1,6 @@
 import os
 import sys
-import date
-
+import time
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(BASE_DIR, "data")
@@ -31,11 +30,10 @@ def read_lines(path):
         return [line.strip() for line in handle if line.strip()]
 
 
-def write_lines(path, lines):
+def write_lines(path, line):
     ensure_file(path)
-    with open(path, "w", encoding="utf-8") as handle:
-        if lines:
-            handle.write("\n".join(lines) + "\n")
+    with open(path, "a", encoding="utf-8") as handle:
+        handle.write(line.strip() + "\n")
 
 
 def the_code(path, prefix):
@@ -98,7 +96,7 @@ BG_WHITE   = '\u001b[47m'
 
 def color(text, color_code, bold=False):
     style = f"{BOLD}{color_code}" if bold else color_code
-    return f"{style}{text}{RESET}"
+    return f"{style}{text}{RESET}\n"
 
 def progress_bar(iteration, total, prefix='', suffix='', length=30, fill='\u2588'):
     total = max(1, total)
@@ -116,8 +114,8 @@ def progress_bar(iteration, total, prefix='', suffix='', length=30, fill='\u2588
     sys.stdout.write(line)
     sys.stdout.flush()
 
-    if iteration >= 100:
-        sys.stdout.write("\n")
+    if iteration >= total:
+        sys.stdout.write('\n')
         sys.stdout.flush()
 
 #Example usage:
@@ -171,3 +169,20 @@ def validate_date(date_str):
 
     except ValueError:
         return False 
+
+
+if __name__ == "__main__":
+    # 测试颜色包装函数
+    print(color("【成功】 预约已创建！", GREEN, bold=True))
+    print(color("【警告】 客户迟到 15 分钟！", YELLOW))
+    print(color("【错误】 付款失败，余额不足！", RED, bold=True))
+    print()
+
+    # 测试进度条
+    print("正在模拟生成财务报表...")
+    items = 50
+    for i in range(items + 1):
+        progress_bar(i, items, prefix='Generating Report', suffix='Done', length=30)
+        time.sleep(0.03)  # 模拟耗时操作
+
+    print(color("报表生成完毕，已保存至 data/payments.txt！", GREEN, bold=True))

@@ -1,1 +1,6 @@
-JINYI, 123456, admin
+User_ID|Username|Password|Role|Created_Date
+
+USR001|admin|admin123|Admin|2026-08-11
+USR002|officer1|off123|Officer|2026-08-11
+USR003|accountant1|acc123|Accountant|2026-08-11
+USR004|tech_boon|tech123|Maintenance|2026-08-11
