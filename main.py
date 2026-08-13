@@ -15,10 +15,10 @@ def main():
             else:
                 customer_menu(customer["username"])
         elif choice == "2":
-            from module.authentication import register_username, register_password
+            from module.authentication import register_username, register_all
             new_username = register_username()
             if new_username:
-                register_password(new_username)
+                register_all(new_username)
                 
         elif choice in ("3", "q", "quit", "exit"):
             break

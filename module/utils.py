@@ -170,6 +170,9 @@ def validate_date(date_str):
     except ValueError:
         return False 
 
+def clear_screen():
+    os.system("cls" if os.name == "nt" else "clear")
+
 
 if __name__ == "__main__":
     # 测试颜色包装函数
@@ -186,3 +189,4 @@ if __name__ == "__main__":
         time.sleep(0.03)  # 模拟耗时操作
 
     print(color("报表生成完毕，已保存至 data/payments.txt！", GREEN, bold=True))
+

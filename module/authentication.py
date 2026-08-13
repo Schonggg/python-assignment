@@ -1,8 +1,23 @@
 import os
+import sys
 import time
 import random
-from module.utils import ensure_file, read_lines, write_lines, primary_key, read_lines, color, progress_bar, validate_date, RED, GREEN
 from datetime import date, datetime, timedelta
+from utils import (
+    ensure_file, 
+    read_lines, 
+    write_lines, 
+    primary_key, 
+    read_lines, 
+    color, 
+    progress_bar, 
+    validate_date, 
+    clear_screen, 
+    RED, 
+    GREEN
+)
+
+
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(BASE_DIR, "data")
@@ -18,9 +33,13 @@ USER_FILE = os.path.join(DATA_DIR, "users.txt")
 
 
 def load_users():
+    
     users = []
     for line in read_lines(USER_FILE):
         parts = [part.strip() for part in line.split("|")]
+        if parts[0].lower() in {"user_id", "customer_id"}:
+            continue
+
         if len(parts) < 5:
             continue
 
@@ -34,7 +53,7 @@ def load_users():
             "password": password,
             "role": role,
             })
-        return users
+    return users
 
 
 
@@ -102,11 +121,10 @@ def register_username():
         return username
 
 
-def register_password(username):
-    ensure_file(CUSTOMER_FILE)
+def register_all(username):
     while True:
-        password1 = input("\nCreate password: ")
-        password2 = input("Confirm password: ")
+        password1 = input("\nCreate password: ").strip()
+        password2 = input("Confirm password: ").strip()
 
         if password1 != password2:
             print(color("Password doesn't match! Please try again.", RED))
@@ -116,12 +134,42 @@ def register_password(username):
             print(color("Password must contain at least 6 characters. Please try again.", RED))
             continue
 
-        code = primary_key(USER_FILE)
-        line = f"{code}|{username}|{password2}|Customer|{date.today()}"
-        write_lines(USER_FILE, line)
-        with open(CUSTOMER_FILE, "a", encoding="utf-8") as handle:
-            handle.write(f"{code}, {username}, {password1}, customer\n")
-            
+        full_name = input("\nPlease enter full name: ").strip()
+
+        while True:
+            phone = input("\nPlease enter phone number: ").strip().replace(" ", "")
+
+            if not phone.isdigit():
+                print(color("Phone number must contain only number. Please try again.", RED))
+                continue
+
+            if phone.startswith("011") or phone.startswith("015"):
+                if len(phone) != 11:
+                    print(color("Phone number must be 11 character. Please try again.", RED))
+                    continue
+            else:
+                if len(phone) != 10:
+                    print(color("Phone number must be 10 character. Please try again.", RED))
+                    continue
+            break
+        email = input("\nPlesae enter email: ").strip()
+
+        code_user = primary_key(USER_FILE)
+        line_user = f"\n{code_user}|{username}|{password2}|Customer|{date.today()}"
+
+        code_customer = primary_key(CUSTOMER_FILE)
+        line_customer = f"\n{code_customer}|{code_user}|{full_name}|{phone}|{email}|1|Bronze"
+
+        write_lines(USER_FILE, line_user)
+        write_lines(CUSTOMER_FILE, line_customer)
+
+        clear_screen()
+        print("Registering...")
+        items = 8
+        for i in range(items + 1):
+            progress_bar(i, items, prefix='Registering User', suffix='Done', length=30)
+            time.sleep(random.uniform(0.01, 0.1))
+
         return True
 
 
@@ -159,11 +207,8 @@ def login(username, password):
         return None
     
 
-
-
-
-
 if __name__ == "__main__":
+    clear_screen()
     new_username = register_username()
     if new_username:
-        register_password(new_username)
+        register_all(new_username)
