@@ -1,0 +1,4 @@
+Payment_ID|Booking_ID|Base_Amount|Discount_Amount|Penalty_Fee|Tax_Amount|Total_Amount|Payment_Status|Payment_Method|Payment_Date
+
+PAY001|BK001|80.00|4.00|0.00|4.56|80.56|Paid|Cash|2026-10-18
+PAY002|BK002|150.00|22.50|15.00|8.55|151.05|Pending|Unpaid|2026-10-22

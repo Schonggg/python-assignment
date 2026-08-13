@@ -1,0 +1,4 @@
+Maint_ID|Equipment_ID|Maintenance_Date|Cost|Staff_User_ID|Description
+
+MNT001|EQ003|2026-07-01|120.00|USR005|Replace water pump pressure valve
+MNT002|EQ004|2026-08-01|250.00|USR005|Engine oil change and tire rotation

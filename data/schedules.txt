@@ -1,0 +1,5 @@
+Schedule_ID|Date|Time_Slot|Team_Assigned|Is_Booked
+
+SCH001|2026-08-20|09:00-11:00|Team Alpha|No
+SCH002|2026-08-20|11:30-13:30|Team Alpha|Yes
+SCH003|2026-08-20|14:00-16:00|Team Beta|Yes

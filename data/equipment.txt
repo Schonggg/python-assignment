@@ -1,0 +1,5 @@
+Equipment_ID|Equipment_Name|Category|Status|Last_Service_Date
+
+EQ001|High-Pressure Pump A|Cleaning Tool|Operational|2026-08-08
+EQ002|Mobile Cleaning Van 1|Vehicle|Need Service|2026-07-15
+EQ003|Steam Cleaner B|Cleaning Tool|In Repair|2026-08-01

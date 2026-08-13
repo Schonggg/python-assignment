@@ -1,0 +1,5 @@
+Service_ID|Service_Name|Price|Duration_Mins|Status
+
+SV001|Express Exterior Wash|35.00|30|Active
+SV002|Interior Deep Clean|80.00|60|Active
+SV003|Full Mobile Detailing|150.00|120|Active

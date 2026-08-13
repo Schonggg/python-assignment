@@ -1,1 +1,4 @@
-# 
+Booking_ID|Customer_ID|Service_ID|Schedule_ID|Booking_Date|Status|Attendance_Status|Reschedule_Count
+
+BK001|CUST001|SV001|SCH001|2026-08-08|Completed|On-Time|0
+BK002|CUST002|SV001|SCH002|2026-08-20|Confirmed|Late|1
