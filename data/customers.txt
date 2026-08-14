@@ -1,4 +1,4 @@
 Customer_ID|User_ID|Full_Name|Phone|Email|Total_Bookings|Loyalty_Tier
 
 CUST001|USR005|Pyi Schong|0194784877|schonggg20@gmail.com|12|Gold
-CUST002|USR006|Lick Bin|0108203589|lickbin@gmail.com|1|BronzeCUST003|USR005|Boon Jin Yi|0123456789|jinyi@gmail.com|1|Bronze
+CUST002|USR006|Lick Bin|0108203589|lickbin@gmail.com|1|Bronze

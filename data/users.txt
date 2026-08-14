@@ -3,4 +3,6 @@ User_ID|Username|Password|Role|Created_Date
 USR001|admin|admin123|Admin|2026-08-11
 USR002|officer1|off123|Officer|2026-08-11
 USR003|accountant1|acc123|Accountant|2026-08-11
-USR004|tech_boon|tech123|Maintenance|2026-08-11USR005|JinYi|123456|Customer|2026-08-14
+USR004|tech_boon|tech123|Maintenance|2026-08-11
+USR005|Schong|123456|Customer|2026-08-14
+USR006|LB|123456|Customer|2026-08-14
