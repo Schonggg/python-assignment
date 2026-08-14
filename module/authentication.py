@@ -155,10 +155,10 @@ def register_all(username):
         email = input("\nPlesae enter email: ").strip()
 
         code_user = primary_key(USER_FILE)
-        line_user = f"\n{code_user}|{username}|{password2}|Customer|{date.today()}"
+        line_user = f"\n{code_user}|{username}|{password2}|Customer|{date.today()}\n"
 
         code_customer = primary_key(CUSTOMER_FILE)
-        line_customer = f"\n{code_customer}|{code_user}|{full_name}|{phone}|{email}|1|Bronze"
+        line_customer = f"\n{code_customer}|{code_user}|{full_name}|{phone}|{email}|1|Bronze\n"
 
         write_lines(USER_FILE, line_user)
         write_lines(CUSTOMER_FILE, line_customer)
