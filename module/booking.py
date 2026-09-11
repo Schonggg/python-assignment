@@ -1,4 +1,4 @@
-from utils import (
+from .utils import (
     BOOKING_FILE,
     SERVICE_FILE,
     read_lines,

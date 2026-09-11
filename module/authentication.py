@@ -3,7 +3,7 @@ import sys
 import time
 import random
 from datetime import date, datetime, timedelta
-from utils import (
+from .utils import (
     ensure_file, 
     read_lines, 
     write_lines, 
@@ -16,7 +16,7 @@ from utils import (
     RED, 
     GREEN
 )
-from booking import (
+from .booking import (
     display_services,
     creating_booking,
     cancel_booking,
