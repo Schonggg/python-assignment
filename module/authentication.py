@@ -18,7 +18,7 @@ from utils import (
 )
 from booking import (
     display_services,
-    create_booking,
+    creating_booking,
     cancel_booking,
     reschedule_booking,
     view_customer_bookings
@@ -82,7 +82,35 @@ def show_services():
     for service in services:
         print(service)
 
+def get_customer_id():
+    #read all booking records from bookings.txt
+    #return them as a list of booking dictionaries
+    customers = []
 
+    lines = read_lines(CUSTOMER_FILE)
+
+    #skip the header line
+    for line in lines[1:]:
+
+        parts = line.split("|")
+
+        #a booking record should contain 8 fields
+        if len(parts != 8):
+            continue
+
+        customer = {
+           "Customer_ID": parts[0],
+            "User_ID": parts[1],
+            "Full_Name": parts[2],
+            "Phone": parts[3],
+            "Email": parts[4],
+            "Total_Bookings": int(parts[5]),
+            "Loyalty_Tier": int(parts[6]), 
+        }
+
+        customers.append(customer)
+
+    return customers
 
 def customer_menu(username):
     while True:
@@ -114,7 +142,7 @@ def customer_menu(username):
                 "Enter Booking Date (YYYY-MM-DD): "
             ).strip()
 
-            create_booking(
+            creating_booking(
                 customer_id,
                 service_id,
                 schedule_id,
