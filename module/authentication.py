@@ -47,19 +47,21 @@ def load_users():
         if parts[0].lower() in {"user_id", "customer_id"}:
             continue
 
-        if len(parts) < 5:
+        if len(parts) < 6:
             continue
 
         user_id = parts[0]
         username = parts[1]
         password = parts[2]
         role = parts[3].lower()
+        created_date = parts[4]
         
         users.append({
             "user_id": user_id,
             "username": username,
             "password": password,
             "role": role,
+            "created_date": created_date
             })
     return users
 
@@ -95,7 +97,7 @@ def get_customer_id():
         parts = line.split("|")
 
         #a booking record should contain 8 fields
-        if len(parts != 8):
+        if len(parts) != 8:
             continue
 
         customer = {
@@ -260,7 +262,7 @@ def register_all(username):
         return True
 
 
-def login(username, password):
+def login():
     users = load_users()
 
     if not users:

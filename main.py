@@ -4,7 +4,8 @@ def main():
         choice = input("> ").strip()
         if choice == "1":
             from module.admin import admin_menu
-            from module.authentication import customer_menu, login
+            from module.authentication import login
+            from module.customer.customer_menu import customer_menu
 
             customer = login()
             if not customer:
