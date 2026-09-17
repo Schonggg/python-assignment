@@ -1,4 +1,4 @@
-from ..authentication import get_customer_id
+from ..authentication import load_users
 from ..booking import (
     display_services,
     creating_booking,
@@ -24,7 +24,7 @@ def customer_menu(username):
             display_services()
 
         elif choice == "2":
-            customer_id = get_customer_id(username)
+            customer_id = load_users(username)
 
             if not customer_id:
                 print("Customer record not found.")
@@ -61,7 +61,7 @@ def customer_menu(username):
             )
 
         elif choice == "5":
-            customer_id = get_customer_id(username)
+            customer_id = load_users(username)
 
             if not customer_id:
                 print("Customer record not found.")
