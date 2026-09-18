@@ -41,7 +41,7 @@ def load_users():
         if parts[0].lower() in {"user_id"}:
             continue
 
-        if len(parts) != 5:
+        if len(parts) == 6:
             continue
 
         user_id = parts[0]

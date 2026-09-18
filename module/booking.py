@@ -93,7 +93,7 @@ def get_bookings():
         parts = line.split("|")
 
         #a booking record should contain 8 fields
-        if len(parts != 8):
+        if len(parts) != 8:
             continue
 
         booking = {
