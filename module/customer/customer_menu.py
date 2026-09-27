@@ -6,9 +6,46 @@ from ..booking import (
     reschedule_booking,
     view_customer_bookings
 )
+from ..utils import read_lines, CUSTOMER_FILE
+
+
+def get_customer_id(username):
+    """
+    Find the Customer_ID that belongs to the logged-in username.
+    """
+    users = load_users()
+
+    user_id = None
+
+    for user in users:
+        if user["username"].lower() == username.lower():
+            user_id = user["user_id"]
+            break
+
+    if user_id is None:
+        return None
+
+    lines = read_lines(CUSTOMER_FILE)
+
+    for line in lines[1:]:
+        parts = line.split("|")
+
+        if len(parts) < 2:
+            continue
+
+        customer_id = parts[0]
+        customer_user_id = parts[1]
+
+        if customer_user_id == user_id:
+            return customer_user_id
+
+    return None
+
 
 
 def customer_menu(username):
+    customer_id = get_customer_id(username)
+
     while True:
         print("\n===== Customer =====")
         print(f"Welcome, {username}")
@@ -20,11 +57,11 @@ def customer_menu(username):
         print("0. Logout")
 
         choice = input("Choose an option: ").strip()
+        
         if choice == "1":
             display_services()
 
         elif choice == "2":
-            customer_id = load_users(username)
 
             if not customer_id:
                 print("Customer record not found.")
@@ -34,9 +71,7 @@ def customer_menu(username):
 
             service_id = input("Enter Service ID: ").strip()
             schedule_id = input("Enter Schedule ID: ").strip()
-            booking_date = input(
-                "Enter Booking Date (YYYY-MM-DD): "
-            ).strip()
+            booking_date = input("Enter Booking Date (YYYY-MM-DD): ").strip()
 
             creating_booking(
                 customer_id,
@@ -61,7 +96,6 @@ def customer_menu(username):
             )
 
         elif choice == "5":
-            customer_id = load_users(username)
 
             if not customer_id:
                 print("Customer record not found.")

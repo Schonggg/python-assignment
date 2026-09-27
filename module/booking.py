@@ -231,7 +231,7 @@ def find_booking(booking_id):
     #return a dict if found or None if the booking doesnt exist
     bookings = get_bookings()
 
-    for booking in bookings():
+    for booking in bookings:
 
         if booking["Booking_ID"] == booking_id:
             return booking
