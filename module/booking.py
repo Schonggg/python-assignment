@@ -7,6 +7,7 @@ from .utils import (
     validate_date
 )
 
+print("BOOKING.PY VALIDATE_DATE:", validate_date)
 
 # SERVICE FUNCTIONS
 
@@ -175,9 +176,12 @@ def creating_booking(customer_id, service_id, schedule_id, booking_date):
         return False
 
     #step 3: validate the booking date
+    print("DEBUG DATE:", repr(booking_date))
+    print("DEBUG VALID:", validate_date(booking_date))
+
     if not validate_date(booking_date):
         print("Invalid date.")
-        print("Please use YYYY_MM_DD format.")
+        print("Please use YYYY-MM-DD format.")
         return False
 
     #step 4: check whether the schedule is already booked
@@ -197,7 +201,7 @@ def creating_booking(customer_id, service_id, schedule_id, booking_date):
 
     #step 6: create the booking record
     new_booking = (
-         f"{booking_id}|"
+        f"{booking_id}|"
         f"{customer_id}|"
         f"{service_id}|"
         f"{schedule_id}|"

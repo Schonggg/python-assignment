@@ -37,7 +37,7 @@ def get_customer_id(username):
         customer_user_id = parts[1]
 
         if customer_user_id == user_id:
-            return customer_user_id
+            return customer_id
 
     return None
 
@@ -45,6 +45,8 @@ def get_customer_id(username):
 
 def customer_menu(username):
     customer_id = get_customer_id(username)
+
+    print("DEBUG CUSTOMER ID:", customer_id)
 
     while True:
         print("\n===== Customer =====")

@@ -144,10 +144,11 @@ def validate_date(date_str):
     if len(date_str) != 10:
         return False
 
-    if date_str[4] != "-" or date_str[6] != "-":
+    if date_str[4] != "-" or date_str[7] != "-":
         return False
 
     parts = date_str.split("-")
+
     if len(parts) != 3:
         return False
 
@@ -169,6 +170,7 @@ def validate_date(date_str):
 
     except ValueError:
         return False 
+    
 
 def clear_screen():
     os.system("cls" if os.name == "nt" else "clear")
