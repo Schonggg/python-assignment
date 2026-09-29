@@ -4,8 +4,9 @@ from ..booking import (
     creating_booking,
     cancel_booking,
     reschedule_booking,
-    view_customer_bookings,
+    view_customer_records,
     view_available_schedules,
+    view_loyalty_points,
     find_booking
 )
 from ..utils import read_lines, CUSTOMER_FILE
@@ -55,8 +56,9 @@ def customer_menu(username):
         print("2. Create Booking")
         print("3. Cancel Booking")
         print("4. Reschedule Booking")
-        print("5. View Booking History")
+        print("5. View Booking Records")
         print("6. View Available Schedules")
+        print("7. View Loyalty Points")
         print("0. Logout")
 
         choice = input("Choose an option: ").strip()
@@ -147,11 +149,17 @@ def customer_menu(username):
                 print("Customer record not found.")
                 continue
 
-            view_customer_bookings(customer_id)
+            view_customer_records(customer_id)
 
         elif choice == "6":
-
             view_available_schedules()
+
+        elif choice == "7":
+            if not customer_id:
+                print("Customer record not found.")
+                continue
+
+            view_loyalty_points(customer_id)
 
         elif choice == "0":
             print("Logging out...")

@@ -2,6 +2,7 @@ from .utils import (
     BOOKING_FILE,
     SERVICE_FILE,
     SCHEDULE_FILE,
+    CUSTOMER_FILE,
     read_lines,
     write_lines,
     primary_key,
@@ -335,6 +336,46 @@ def calculate_penalty(attendance_status):
     return 0.00
 
 
+#CALCULATE LOYALTY POINTS
+def calculate_loyalty_points(price, attendance_status):
+    #to calculate loyalty points bsed on service price n attendance status
+    #Rules:
+    #- Base points: 10
+    #- Price below RM50: +2
+    #- Price RM50 to RM99.99: +5
+    #- Price RM100 or above: +10
+    #- Late: -2
+    points = 10
+
+    if price < 50:
+        points += 2
+    elif price < 100:
+        points += 5
+    else:
+        points += 10
+
+    if attendance_status == "Late":
+        points -= 2
+
+    return points
+
+
+#CALCULATE LOYALTY TIER
+def calculate_loyalty_tier(total_points):
+    #calculate loyalty tier based on total loyalty points.
+    #Rules:
+    #- 0 to 49 points: Bronze
+    #- 50 to 99 points: Silver
+    #- 100 points or above: Gold
+
+    if total_points < 50:
+        return "Bronze"
+    elif total_points < 100:
+        return "Silver"
+    else:
+        return "Gold"
+
+
 #UPDATE ATTENDANCE
 def update_attendance(booking_id, attendance_status):
     #update the sttendance status of a booking
@@ -534,17 +575,18 @@ def reschedule_booking(booking_id, new_schedule_id, new_date):
     return True
 
 
-# VIEW CUSTOMER BOOKING HISTORY
+# VIEW CUSTOMER BOOKING RECORDS
 
-def view_customer_bookings(customer_id):
-    #display all bookings belong to a specific customer
+def view_customer_records(customer_id):
+    #display all bookings belong to a customer
     #can be used by the loyalty system to calculate points 
     #based on the customer completed services
     bookings = get_bookings()
 
     found = False
 
-    print(f"\n{'=' * 10} CUSTOMER BOOKING HISTORY {'=' * 10}")
+    print(f"\n{'=' * 10} CUSTOMER BOOKING RECORDS {'=' * 10}")
+    print(f"Customer ID: {customer_id}")
 
     for booking in bookings:
 
@@ -556,21 +598,23 @@ def view_customer_bookings(customer_id):
 
             if service:
                 service_name = service["Service_Name"]
-
             else:
                 service_name = "Unknown Service"
 
-            print(
-                f"\nBooking ID : {booking['Booking_ID']}"
-                f"\nService    : {service_name}"
-                f"\nDate       : {booking['Booking_Date']}"
-                f"\nStatus     : {booking['Status']}"
-                f"\nAttendance : {booking['Attendance_Status']}"
-                f"\nReschedule : {booking['Reschedule_Count']}"
-            )
+            print("\n-----------------------------")
+            print(f"Booking ID       : {booking['Booking_ID']}")
+            print(f"Service ID       : {booking['Service_ID']}")
+            print(f"Service Name     : {service_name}")
+            print(f"Schedule ID      : {booking['Schedule_ID']}")
+            print(f"Booking Date     : {booking['Booking_Date']}")
+            print(f"Status           : {booking['Status']}")
+            print(f"Attendance       : {booking['Attendance_Status']}")
+            print(f"Reschedule Count : {booking['Reschedule_Count']}")
 
     if not found:
-        print("No booking history found.")
+        print("No booking records found.")
+
+    return found
 
 
 # VIEW AVAILABLE SCHEDULES
@@ -626,4 +670,119 @@ def view_available_schedules():
 
     if not found:
         print("\nNo available schedules.")
+
+
+#VIEW LOYALTY POINTS
+def view_loyalty_points(customer_id):
+    #calculate n display loyalty points for a customer
+    # only completed bookings are counted
+    #points are based on service price n attendance status
+    bookings = get_bookings()
+
+    total_points = 0
+    found = False
+
+    print(f"\n{'=' * 10} LOYALTY POINTS {'=' * 10}")
+    print(f"Customer ID: {customer_id}")
+
+    for booking in bookings:
+        if booking["Customer_ID"] != customer_id:
+            continue
+
+        if booking["Status"] != "Completed":
+            continue
+
+        found = True
+
+        service = find_service(booking["Service_ID"])
+
+        if service is None:
+            print(f"\nBooking {booking['Booking_ID']}: Service not found.")
+            continue
+
+        service_name = service["Service_Name"]
+        price = float(service["Price"])
+        attendance_status = booking["Attendance_Status"]
+
+        points = calculate_loyalty_points(
+            price,
+            attendance_status
+        )
+
+        total_points += points
+
+        print("\n-----------------------------")
+        print(f"Booking ID : {booking['Booking_ID']}")
+        print(f"Service    : {service_name}")
+        print(f"Price      : RM{price:.2f}")
+        print(f"Attendance : {attendance_status}")
+        print(f"Points     : {points}")
+
+    if not found:
+        print("\nNo completed bookings found.")
+
+    tier = calculate_loyalty_tier(total_points)
+
+    print("\n-----------------------------")
+    print(f"Total Loyalty Points: {total_points}")
+    print(f"Loyalty Tier        : {tier}")
+
+    return total_points
+
+
+#UPDATE CUSTOMER LOYALTY
+def update_customer_loyalty(customer_id):
+    #recalculate n update  customer loyalty points n tier
+    bookings = get_bookings()
+    total_points = 0
+
+    for booking in bookings:
+        if booking["Customer_ID"] != customer_id:
+            continue
+
+        if booking["Status"] != "Completed":
+            continue
+
+        service = find_service(booking["Service_ID"])
+
+        if service is None:
+            continue
+
+        price = float(service["Price"])
+
+        points = calculate_loyalty_points(
+            price,
+            booking["Attendance_Status"]
+        )
+
+        total_points += points
+
+    tier = calculate_loyalty_tier(total_points)
+
+    lines = read_lines(CUSTOMER_FILE)
+
+    if not lines:
+        return False
+
+    updated_lines = [lines[0]]
+
+    for line in lines[1:]:
+        if not line.strip():
+            continue
+
+        parts = line.split("|")
+
+        if len(parts) < 8:
+            continue
+
+        if parts[0] == customer_id:
+            parts[6] = str(total_points)
+            parts[7] = tier
+
+        updated_lines.append("|".join(parts))
+
+    with open(CUSTOMER_FILE, "w", encoding="utf-8") as f:
+        f.write("\n".join(updated_lines) + "\n")
+
+    return True
 
