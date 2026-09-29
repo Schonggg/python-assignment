@@ -176,13 +176,44 @@ def creating_booking(customer_id, service_id, schedule_id, booking_date):
         print("This service is currently unavailable.")
         return False
 
-    #step 3: validate the booking date
-    print("DEBUG DATE:", repr(booking_date))
-    print("DEBUG VALID:", validate_date(booking_date))
-
     if not validate_date(booking_date):
         print("Invalid date.")
         print("Please use YYYY-MM-DD format.")
+        return False
+
+    #check whether the schedule exist
+    new_schedule = None
+    schedules = read_lines(SCHEDULE_FILE)
+
+    for line in schedules[1:]:
+        parts = line.split("|")
+
+        if len(parts) < 5:
+            continue
+
+        if parts[0] == schedule_id:
+            new_schedule = {
+                "Schedule_ID": parts[0],
+                "Date": parts[1],
+                "Time_Slot": parts[2],
+                "Team_Assigned": parts[3],
+                "Is_Booked": parts[4]
+            }
+            break
+
+    #schedule does not exist
+    if new_schedule is None:
+        print("The schedule does not exist.")
+        return False
+
+    #schedule date must match booking date
+    if new_schedule["Date"] != booking_date:
+        print("The selected schedule is not available on this date.")
+        return False
+
+    #schedule must be available
+    if new_schedule["Is_Booked"].lower() == "yes":
+        print("The new schedule is already booked.")
         return False
 
     #step 4: check whether the schedule is already booked
@@ -290,6 +321,64 @@ def find_booking(booking_id):
     return None
 
 
+#CALCULATE PENALTY
+def calculate_penalty(attendance_status):
+    #calcualte penalty fee based on attandence status.
+    #rules: 
+    #- on time RM0 
+    #- late RM15
+    #- not yet RM0
+
+    if attendance_status == "Late":
+        return 15.00
+
+    return 0.00
+
+
+#UPDATE ATTENDANCE
+def update_attendance(booking_id, attendance_status):
+    #update the sttendance status of a booking
+    #valid satuses:
+    #- On Time
+    #- Late
+    bookings = get_bookings()
+
+    #find the booking
+    booking = find_booking(booking_id)
+
+    if booking is None:
+        print("Booking not found.")
+        return False
+
+    #only confirmed bookings can ve attendance updated
+    if booking["Status"] != "Confirmed":
+        print("Only confirmed bookings can have their attendance updated.")
+        return False
+
+    #validate attendance status
+    if attendance_status not in ["On Time", "Late"]:
+        print("Invalid attendance status.")
+        print("Please enter On Time or Late.")
+        return False
+
+    #update attendance status
+    for record in bookings:
+        if record["Booking_ID"] == booking_id:
+            record["Attendance_Status"] = attendance_status
+            break
+
+    #save the updated boking reocrds
+    save_bookings(bookings)
+
+    #calculate the penalty
+    penalty = calculate_penalty(attendance_status)
+
+    print(f"Attendance for {booking_id} updated to {attendance_status}.")
+    print(f"Penalty Fee: RM{penalty:.2f}")
+
+    return True
+
+
 # CANCEL BOOKING
 
 def cancel_booking(booking_id):
@@ -310,6 +399,9 @@ def cancel_booking(booking_id):
     if booking["Status"] == "Completed":
         print("Completed bookings cannot be cancelled.")
         return False
+    
+    #rmb current schedule
+    old_schedule_id = booking["Schedule_ID"]
 
     #change the booking status
     for record in bookings:
@@ -320,6 +412,9 @@ def cancel_booking(booking_id):
 
     #save the updated booking records
     save_bookings(bookings)
+
+    #release the schedule
+    update_schedule_status(old_schedule_id, "No")
 
     print(f"Booking {booking_id} has been cancelled successfully.")
 
@@ -362,6 +457,42 @@ def reschedule_booking(booking_id, new_schedule_id, new_date):
         print("Please use YYYY-MM-DD format.")
         return False
 
+    #fine the new schedule
+    new_schedule = None
+    schedules = read_lines(SCHEDULE_FILE)
+
+    for line in schedules[1:]:
+        parts = line.split("|")
+        if len(parts) < 5:
+            continue
+
+        if parts[0] == new_schedule_id:
+
+            new_schedule = {
+                "Schedule_ID": parts[0],
+                "Date": parts[1],
+                "Time_Slot": parts[2],
+                "Team_Assigned": parts[3],
+                "Is_Booked": parts[4]
+            }
+
+            break
+
+    #new schedule does not exist
+    if new_schedule is None:
+        print("The new schedule does not exist.")
+        return False
+
+    #the new schedule date must match the selected date
+    if new_schedule["Date"] != new_date:
+        print("The selected schedule is not available on this date.")
+        return False
+
+    #new schedule must be available
+    if new_schedule["Is_Booked"].lower() == "yes":
+        print("The new schedule is not available.")
+        return False
+
     #check whther another booking alr use the new schedule
     for record in bookings:
 
@@ -372,6 +503,9 @@ def reschedule_booking(booking_id, new_schedule_id, new_date):
         ):
             print("The new schedule is already booked.")
             return False
+
+    #to rmb the old schedule
+    old_schedule_id = booking["Schedule_ID"]
 
     #update the booking
     for record in bookings:
@@ -388,6 +522,12 @@ def reschedule_booking(booking_id, new_schedule_id, new_date):
 
     #save the updated records
     save_bookings(bookings)
+
+    #release the old schedule
+    update_schedule_status(old_schedule_id, "No")
+
+    #book the new schedule
+    update_schedule_status(new_schedule_id, "Yes")
 
     print(f"Booking {booking_id} has been rescheduled successfully.")
 

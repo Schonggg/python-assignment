@@ -48,8 +48,6 @@ def get_customer_id(username):
 def customer_menu(username):
     customer_id = get_customer_id(username)
 
-    print("DEBUG CUSTOMER ID:", customer_id)
-
     while True:
         print("\n===== Customer =====")
         print(f"Welcome, {username}")
@@ -131,6 +129,8 @@ def customer_menu(username):
             if booking["Customer_ID"] != customer_id:
                 print("You can only reschedule your own booking.")
                 continue
+
+            view_available_schedules()
 
             new_schedule_id = input("Enter New Schedule ID: ").strip()
             new_date = input("Enter New Date (YYYY-MM-DD): ").strip()
