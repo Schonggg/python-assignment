@@ -305,6 +305,11 @@ def reschedule_booking(booking_id, new_schedule_id, new_date):
         print("Cancelled bookings cannot be rescheduled.")
         return False
 
+    #check whether the new schedule is the same as the current schedule
+    if booking["Schedule_ID"] == new_schedule_id:
+        print("The new schedule must be different from the current schedule.")
+        return False 
+
     #check whether the new date is valid
     if not validate_date(new_date):
         print("Invalid date.")
@@ -423,7 +428,7 @@ def view_available_schedules():
                 break
 
         #only show available one
-        if is_booked.lower() == "no":
+        if is_booked.lower() == "no" and not already_booked:
 
             found = True
 
