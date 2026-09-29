@@ -4,7 +4,9 @@ from ..booking import (
     creating_booking,
     cancel_booking,
     reschedule_booking,
-    view_customer_bookings
+    view_customer_bookings,
+    view_available_schedules,
+    find_booking
 )
 from ..utils import read_lines, CUSTOMER_FILE
 
@@ -56,6 +58,7 @@ def customer_menu(username):
         print("3. Cancel Booking")
         print("4. Reschedule Booking")
         print("5. View Booking History")
+        print("6. View Available Schedules")
         print("0. Logout")
 
         choice = input("Choose an option: ").strip()
@@ -69,12 +72,19 @@ def customer_menu(username):
                 print("Customer record not found.")
                 continue
 
+            #display all services
             display_services()
 
             service_id = input("Enter Service ID: ").strip()
+
+            #display available schedules
+            view_available_schedules()
+
             schedule_id = input("Enter Schedule ID: ").strip()
+
             booking_date = input("Enter Booking Date (YYYY-MM-DD): ").strip()
 
+            #create booking
             creating_booking(
                 customer_id,
                 service_id,
@@ -83,11 +93,45 @@ def customer_menu(username):
             )
 
         elif choice == "3":
+
+            if not customer_id:
+                print("Customer record not found.")
+                continue
+
             booking_id = input("Enter Booking ID: ").strip()
+
+            #check whether the booking belongs to the loggedin customer
+            booking = find_booking(booking_id)
+
+            if booking is None:
+                print("Booking not found.")
+                continue
+
+            if booking["Customer_ID"] != customer_id:
+                print("You can only cancel your own booking.")
+                continue
+            
             cancel_booking(booking_id)
 
         elif choice == "4":
+
+            if not customer_id:
+                print("Customer record not found.")
+                continue
+
             booking_id = input("Enter Booking ID: ").strip()
+
+            #check whether the booking belongs to the loggedin customer
+            booking = find_booking(booking_id)
+
+            if booking is None:
+                print("Booking not found.")
+                continue
+
+            if booking["Customer_ID"] != customer_id:
+                print("You can only reschedule your own booking.")
+                continue
+
             new_schedule_id = input("Enter New Schedule ID: ").strip()
             new_date = input("Enter New Date (YYYY-MM-DD): ").strip()
 
@@ -105,8 +149,14 @@ def customer_menu(username):
 
             view_customer_bookings(customer_id)
 
+        elif choice == "6":
+
+            view_available_schedules()
+
         elif choice == "0":
             print("Logging out...")
             break
+
         else:
             print("Invalid choice, try again.")
+     

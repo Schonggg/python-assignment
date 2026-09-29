@@ -1,6 +1,7 @@
 from .utils import (
     BOOKING_FILE,
     SERVICE_FILE,
+    SCHEDULE_FILE,
     read_lines,
     write_lines,
     primary_key,
@@ -379,3 +380,59 @@ def view_customer_bookings(customer_id):
 
     if not found:
         print("No booking history found.")
+
+
+# VIEW AVAILABLE SCHEDULES
+
+def view_available_schedules():
+    #display all available schedules
+    #only schedules with Is_Booked = "No" are displayed
+    #Is_Booked in schedules.txt is "No"
+    #there is no Confirmed booking usnig the same Schedule_ID
+    
+    schedules = read_lines(SCHEDULE_FILE)
+    bookings = get_bookings()
+
+    print(f"\n{'=' * 10} AVAILABLE SCHEDULES {'=' * 10}")
+
+    found = False
+
+    #skip the header
+    for line in schedules[1:]:
+        if not line.strip():
+            continue
+
+        parts = line.split("|")
+
+        if len(parts) < 5:
+            continue
+
+        schedule_id = parts[0]
+        schedule_date = parts[1]
+        time_slot = parts[2]
+        team_assigned = parts[3]
+        is_booked = parts[4]
+
+        #check whteher this schedule is ady used
+        already_booked = False
+
+        for booking in bookings:
+            if(booking["Schedule_ID"] == schedule_id
+               and booking["Status"] == "Confirmed"):
+                already_booked = True
+                break
+
+        #only show available one
+        if is_booked.lower() == "no":
+
+            found = True
+
+            print(f"\nSchedule ID : {schedule_id}")
+            print(f"Date        : {schedule_date}")
+            print(f"Time        : {time_slot}")
+            print(f"Team        : {team_assigned}")
+            print(f"Status      : Available")
+
+    if not found:
+        print("\nNo available schedules.")
+
