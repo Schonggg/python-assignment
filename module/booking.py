@@ -215,6 +215,9 @@ def creating_booking(customer_id, service_id, schedule_id, booking_date):
     #add new booking to booking.txt
     write_lines(BOOKING_FILE, new_booking)
 
+    #update the schedule status to booked
+    update_schedule_status(schedule_id, "Yes")
+
     #step 7: display confirmation
     print(f"\n{'=' * 10} BOOKING CREATED {'=' * 10}")
     print(f"Booking ID : {booking_id}")
@@ -225,6 +228,49 @@ def creating_booking(customer_id, service_id, schedule_id, booking_date):
     print(f"Schedule ID: {schedule_id}")
     print(f"Date       : {booking_date}")
     print("Status     : Confirmed")
+
+    return True
+
+
+# UPDATE SCHEDULE STATUS
+
+def update_schedule_status(schedule_id, status):
+    #update the Is_Booked status of a schedule.
+    #the status should be "Yes" when the schedule is booked 
+    #and "No" when the schedule becomes available
+
+    lines = read_lines(SCHEDULE_FILE)
+
+    if len(lines) == 0:
+        return False
+
+    updated_lines = []
+
+    #keep the header
+    updated_lines.append(lines[0])
+
+    found = False
+
+    #process schedule records
+    for line in lines[1:]:
+        parts = line.split("|")
+
+        if len(parts) < 5:
+            continue
+
+        if parts[0] == schedule_id:
+            parts[4] = status
+            found = True
+
+        updated_lines.append("|".join(parts))
+
+    if not found:
+        return False
+
+    #rewrite the schedule file
+    with open(SCHEDULE_FILE, "w", encoding="utf-8") as f:
+        for line in updated_lines:
+            f.write(line + "\n")
 
     return True
 
