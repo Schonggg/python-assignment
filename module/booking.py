@@ -6,7 +6,13 @@ from .utils import (
     read_lines,
     write_lines,
     primary_key,
-    validate_date
+    validate_date,
+    draw_box,
+    divider,
+    success,
+    warning,
+    error,
+    info
 )
 
 print("BOOKING.PY VALIDATE_DATE:", validate_date)
@@ -59,9 +65,8 @@ def display_services():
     #display all active services for the user to choose form
     services = get_services()
 
-    print(f"\n{'=' * 10} AVAILABLE SERVICES {'=' * 10}")
-
     found = False
+    rows = []
 
     for service in services:
 
@@ -70,7 +75,7 @@ def display_services():
 
             found = True
 
-            print(
+            rows.append(
                 f'{service["Service_ID"]} | '
                 f'{service["Service_Name"]} | '
                 f'RM{service["Price"]:.2f} | '
@@ -78,7 +83,9 @@ def display_services():
             )
 
     if not found:
-        print("No active services available.")
+        print(warning("No active services available."))
+    else:
+        print(draw_box(rows, title="AVAILABLE SERVICES"))
 
 
 # BOOKING FILE FUNCTIONS
@@ -147,7 +154,6 @@ def save_bookings(bookings):
         for line in lines:
             file.write(line + "\n")
 
-
 # CREATE BOOKING
 
 def creating_booking(customer_id, service_id, schedule_id, booking_date):
@@ -169,17 +175,17 @@ def creating_booking(customer_id, service_id, schedule_id, booking_date):
     service = find_service(service_id)
 
     if service is None:
-        print("Invalid Service ID.")
+        print(error("Invalid Service ID."))
         return False
 
     #step 2: check whether the service is active
     if service["Status"] != "Active":
-        print("This service is currently unavailable.")
+        print(warning("This service is currently unavailable."))
         return False
 
     if not validate_date(booking_date):
-        print("Invalid date.")
-        print("Please use YYYY-MM-DD format.")
+        print(error("Invalid date."))
+        print(info("Please use YYYY-MM-DD format."))
         return False
 
     #check whether the schedule exist
@@ -204,17 +210,17 @@ def creating_booking(customer_id, service_id, schedule_id, booking_date):
 
     #schedule does not exist
     if new_schedule is None:
-        print("The schedule does not exist.")
+        print(error("The schedule does not exist."))
         return False
 
     #schedule date must match booking date
     if new_schedule["Date"] != booking_date:
-        print("The selected schedule is not available on this date.")
+        print(warning("The selected schedule is not available on this date."))
         return False
 
     #schedule must be available
     if new_schedule["Is_Booked"].lower() == "yes":
-        print("The new schedule is already booked.")
+        print(warning("The new schedule is already booked."))
         return False
 
     #step 4: check whether the schedule is already booked
@@ -226,7 +232,7 @@ def creating_booking(customer_id, service_id, schedule_id, booking_date):
             booking["Schedule_ID"] == schedule_id
             and booking["Status"] == "Confirmed"
         ):
-            print("This schedule is already booked.")
+            print(warning("This schedule is already booked."))
             return False
 
     #step 5: generate a new booking id
@@ -251,15 +257,19 @@ def creating_booking(customer_id, service_id, schedule_id, booking_date):
     update_schedule_status(schedule_id, "Yes")
 
     #step 7: display confirmation
-    print(f"\n{'=' * 10} BOOKING CREATED {'=' * 10}")
-    print(f"Booking ID : {booking_id}")
-    print(f"Customer ID: {customer_id}")
-    print(f"Service    : {service['Service_Name']}")
-    print(f"Price      : RM{service['Price']:.2f}")
-    print(f"Duration   : {service['Duration_Mins']} mins")
-    print(f"Schedule ID: {schedule_id}")
-    print(f"Date       : {booking_date}")
-    print("Status     : Confirmed")
+    print(draw_box(
+        [            
+            f"Booking ID : {booking_id}",
+            f"Customer ID: {customer_id}",
+            f"Service    : {service['Service_Name']}",
+            f"Price      : RM{service['Price']:.2f}",
+            f"Duration   : {service['Duration_Mins']} mins",
+            f"Schedule ID: {schedule_id}",
+            f"Date       : {booking_date}",
+            "Status     : Confirmed",
+        ],
+        title="BOOKING CREATED",
+    ))
 
     return True
 
@@ -388,18 +398,18 @@ def update_attendance(booking_id, attendance_status):
     booking = find_booking(booking_id)
 
     if booking is None:
-        print("Booking not found.")
+        print(error("Booking not found."))
         return False
 
     #only confirmed bookings can ve attendance updated
     if booking["Status"] != "Confirmed":
-        print("Only confirmed bookings can have their attendance updated.")
+        print(warning("Only confirmed bookings can have their attendance updated."))
         return False
 
     #validate attendance status
     if attendance_status not in ["On Time", "Late"]:
-        print("Invalid attendance status.")
-        print("Please enter On Time or Late.")
+        print(error("Invalid attendance status."))
+        print(info("Please enter On Time or Late."))
         return False
 
     #update attendance status
@@ -415,9 +425,52 @@ def update_attendance(booking_id, attendance_status):
     penalty = calculate_penalty(attendance_status)
 
     print(f"Attendance for {booking_id} updated to {attendance_status}.")
-    print(f"Penalty Fee: RM{penalty:.2f}")
+    print(error(f"Penalty Fee: RM{penalty:.2f}"))
 
     return True
+
+
+# COMPLETE BOOKING
+
+def complete_booking(booking_id):
+    bookings = get_bookings()
+
+    booking = find_booking(booking_id)
+
+    if booking is None:
+        print(error("Booking not found"))
+        return False
+
+    if booking["Status"] == "Confirmed":
+        print(warning("Only confirmed bookings can be completed."))
+        return False
+
+    for record in bookings:
+        if record["Booking_ID"] == booking_id:
+            record["Status"] = "Completed"
+            break
+
+    save_bookings(bookings)
+
+    # +5 bumped value for each equipment once booking marked as completed
+    from .maintenance import get_equipments_for_service, increment_equipment_wear
+
+    service_id = booking["Service_ID"]
+    bumped = []
+
+    for equipment_id in get_equipments_for_service(service_id):
+        if increment_equipment_wear(equipment_id, 5):
+            bumped.append(equipment_id)
+
+    print(success(f"Booking {booking_id} has been marked as Completed."))
+
+    if bumped:
+        print(info(
+            "Equipment wear increased for: " + ", ".join(bumped)
+        ))
+
+    return True
+
 
 
 # CANCEL BOOKING
@@ -433,12 +486,12 @@ def cancel_booking(booking_id):
     booking = find_booking(booking_id)
 
     if booking is None:
-        print("Booking not found.")
+        print(error("Booking not found."))
         return False
 
     #a completed booking cannot be cancalled
     if booking["Status"] == "Completed":
-        print("Completed bookings cannot be cancelled.")
+        print(warning("Completed bookings cannot be cancelled."))
         return False
     
     #rmb current schedule
@@ -457,7 +510,7 @@ def cancel_booking(booking_id):
     #release the schedule
     update_schedule_status(old_schedule_id, "No")
 
-    print(f"Booking {booking_id} has been cancelled successfully.")
+    print(success(f"Booking {booking_id} has been cancelled successfully."))
 
     return True
 
@@ -474,28 +527,28 @@ def reschedule_booking(booking_id, new_schedule_id, new_date):
     booking = find_booking(booking_id)
 
     if booking is None:
-        print("Booking not found.")
+        print(error("Booking not found."))
         return False
 
     #completed bookings cannot be rescheduled
     if booking["Status"] == "Completed":
-        print("Completed bookings cannot be rescheduled.")
+        print(warning("Completed bookings cannot be rescheduled."))
         return False
 
     #cancelled bookings cannot be rescheduled
     if booking["Status"] == "Cancelled":
-        print("Cancelled bookings cannot be rescheduled.")
+        print(warning("Cancelled bookings cannot be rescheduled."))
         return False
 
     #check whether the new schedule is the same as the current schedule
     if booking["Schedule_ID"] == new_schedule_id:
-        print("The new schedule must be different from the current schedule.")
+        print(warning("The new schedule must be different from the current schedule."))
         return False 
 
     #check whether the new date is valid
     if not validate_date(new_date):
-        print("Invalid date.")
-        print("Please use YYYY-MM-DD format.")
+        print(error("Invalid date."))
+        print(info("Please use YYYY-MM-DD format."))
         return False
 
     #fine the new schedule
@@ -521,17 +574,17 @@ def reschedule_booking(booking_id, new_schedule_id, new_date):
 
     #new schedule does not exist
     if new_schedule is None:
-        print("The new schedule does not exist.")
+        print(error("The new schedule does not exist."))
         return False
 
     #the new schedule date must match the selected date
     if new_schedule["Date"] != new_date:
-        print("The selected schedule is not available on this date.")
+        print(warning("The selected schedule is not available on this date."))
         return False
 
     #new schedule must be available
     if new_schedule["Is_Booked"].lower() == "yes":
-        print("The new schedule is not available.")
+        print(warning("The new schedule is not available."))
         return False
 
     #check whther another booking alr use the new schedule
@@ -542,7 +595,7 @@ def reschedule_booking(booking_id, new_schedule_id, new_date):
             and record["Booking_ID"] != booking_id
             and record["Status"] == "Confirmed"
         ):
-            print("The new schedule is already booked.")
+            print(warning("The new schedule is already booked."))
             return False
 
     #to rmb the old schedule
@@ -570,7 +623,7 @@ def reschedule_booking(booking_id, new_schedule_id, new_date):
     #book the new schedule
     update_schedule_status(new_schedule_id, "Yes")
 
-    print(f"Booking {booking_id} has been rescheduled successfully.")
+    print(success(f"Booking {booking_id} has been rescheduled successfully."))
 
     return True
 
@@ -585,9 +638,8 @@ def view_customer_records(customer_id):
 
     found = False
 
-    print(f"\n{'=' * 10} CUSTOMER BOOKING RECORDS {'=' * 10}")
-    print(f"Customer ID: {customer_id}")
-
+    print(draw_box([f"Customer ID: {customer_id}"], title="CUSTOMER BOOKING RECORDS"))
+    
     for booking in bookings:
 
         if booking["Customer_ID"] == customer_id:
@@ -601,18 +653,21 @@ def view_customer_records(customer_id):
             else:
                 service_name = "Unknown Service"
 
-            print("\n-----------------------------")
-            print(f"Booking ID       : {booking['Booking_ID']}")
-            print(f"Service ID       : {booking['Service_ID']}")
-            print(f"Service Name     : {service_name}")
-            print(f"Schedule ID      : {booking['Schedule_ID']}")
-            print(f"Booking Date     : {booking['Booking_Date']}")
-            print(f"Status           : {booking['Status']}")
-            print(f"Attendance       : {booking['Attendance_Status']}")
-            print(f"Reschedule Count : {booking['Reschedule_Count']}")
+            print(draw_box(
+                [
+                    f"Booking ID       : {booking['Booking_ID']}",
+                    f"Service ID       : {booking['Service_ID']}",
+                    f"Service Name     : {service_name}",
+                    f"Schedule ID      : {booking['Schedule_ID']}",
+                    f"Booking Date     : {booking['Booking_Date']}",
+                    f"Status           : {booking['Status']}",
+                    f"Attendance       : {booking['Attendance_Status']}",
+                    f"Reschedule Count : {booking['Reschedule_Count']}",
+                ]
+            ))
 
     if not found:
-        print("No booking records found.")
+        print(warning("No booking records found."))
 
     return found
 
@@ -628,7 +683,9 @@ def view_available_schedules():
     schedules = read_lines(SCHEDULE_FILE)
     bookings = get_bookings()
 
-    print(f"\n{'=' * 10} AVAILABLE SCHEDULES {'=' * 10}")
+    print(divider())
+    print(info("AVAILABLE SCHEDULES"))
+    print(divider())
 
     found = False
 
@@ -662,14 +719,96 @@ def view_available_schedules():
 
             found = True
 
-            print(f"\nSchedule ID : {schedule_id}")
-            print(f"Date        : {schedule_date}")
-            print(f"Time        : {time_slot}")
-            print(f"Team        : {team_assigned}")
-            print(f"Status      : Available")
+            print(draw_box(
+                [
+                    f"Schedule ID : {schedule_id}",
+                    f"Date        : {schedule_date}",
+                    f"Time        : {time_slot}",
+                    f"Team        : {team_assigned}",
+                    f"Status      : Available",
+                ]
+            ))
 
     if not found:
-        print("\nNo available schedules.")
+        print(warning("No available schedules."))
+
+
+# SCHEDULE AVAILABILITY HELPERS
+
+
+def get_schedules():
+    schedules = []
+
+    lines = read_lines(SCHEDULE_FILE)
+
+    for line in lines[1:]:
+        if not line.strip():
+            continue
+
+        parts = line.split("|")
+
+        if len(parts) != 5:
+            continue
+
+        schedule = {
+            "Schedule_ID": parts[0],
+            "Date": parts[1],
+            "Time_Slot": parts[2],
+            "Team_Assigned": parts[3],
+            "Is_Booked": parts[4]
+        }
+
+        schedules.append(schedule)
+    return schedules
+
+def get_time_slots():
+    slots = []
+
+    for schedule in get_schedules():
+        slot = schedule["Time_Slot"]
+
+        if slot not in slots:
+            slots.append(slot)
+
+    return slots
+
+def is_schedule_available(schedule):
+    if schedule is None:
+        return False
+
+    if schedule["Is_Booked"].lower() == "yes":
+        return False
+
+    for booking in get_bookings():
+        if(booking["Schedule_ID"] == schedule["Schedule_ID"]
+                and booking["Status"] == "Confirmed"):
+            return False
+
+    return True
+
+
+def find_schedule_for(date, time_slot):
+    for schedule in get_schedules():
+        if schedule["Date"] == date and schedule["Time_Slot"] == time_slot:
+            return schedule
+    return None
+
+def find_next_available_schedule(user_date, user_time_slot):
+    available = [s for s in get_schedules() if is_schedule_available(s)]
+    if not available:
+        return None
+
+    #sort by date then time slot to find nearest available slot
+    available.sort(key=lambda s: (s["Date"], s["Time_Slot"]))
+
+    user_want = (user_date, user_time_slot)
+
+    for schedule in available:
+        if (schedule["Date"], schedule["Time_Slot"]) >= user_want:
+            return schedule
+
+    return available[0]
+
 
 
 #VIEW LOYALTY POINTS
@@ -682,8 +821,7 @@ def view_loyalty_points(customer_id):
     total_points = 0
     found = False
 
-    print(f"\n{'=' * 10} LOYALTY POINTS {'=' * 10}")
-    print(f"Customer ID: {customer_id}")
+    print(draw_box([f"Customer ID: {customer_id}"], title="LOYALTY POINTS"))
 
     for booking in bookings:
         if booking["Customer_ID"] != customer_id:
@@ -697,7 +835,7 @@ def view_loyalty_points(customer_id):
         service = find_service(booking["Service_ID"])
 
         if service is None:
-            print(f"\nBooking {booking['Booking_ID']}: Service not found.")
+            print(warning(f"Booking {booking['Booking_ID']}: Service not found."))
             continue
 
         service_name = service["Service_Name"]
@@ -711,21 +849,27 @@ def view_loyalty_points(customer_id):
 
         total_points += points
 
-        print("\n-----------------------------")
-        print(f"Booking ID : {booking['Booking_ID']}")
-        print(f"Service    : {service_name}")
-        print(f"Price      : RM{price:.2f}")
-        print(f"Attendance : {attendance_status}")
-        print(f"Points     : {points}")
+        print(draw_box(
+            [
+                f"Booking ID : {booking['Booking_ID']}",
+                f"Service    : {service_name}",
+                f"Price      : RM{price:.2f}",
+                f"Attendance : {attendance_status}",
+                f"Points     : {points}",
+            ]
+        ))
 
     if not found:
-        print("\nNo completed bookings found.")
+        print(error("No completed bookings found."))
 
     tier = calculate_loyalty_tier(total_points)
 
-    print("\n-----------------------------")
-    print(f"Total Loyalty Points: {total_points}")
-    print(f"Loyalty Tier        : {tier}")
+    print(draw_box(
+        [
+            f"Total Loyalty Points: {total_points}",
+            f"Loyalty Tier        : {tier}",  
+        ]
+    ))
 
     return total_points
 

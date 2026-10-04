@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 import time
 
@@ -94,9 +95,93 @@ BG_MAGENTA = '\u001b[45m'
 BG_CYAN    = '\u001b[46m' 
 BG_WHITE   = '\u001b[47m' 
 
+ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
+
+def del_ansi_len(text):
+    return ANSI_RE.sub("", text)
+
+def true_len(text):
+    return len(del_ansi_len(text))
+
+def draw_box(lines, title = None, color_code = WHITE, padding = 1):
+    #崇拜我吧
+    if isinstance(lines, str):
+        content = lines.split("\n")
+
+    else:
+        content = list(lines)
+    if not content:
+        content = [""]
+
+    width = max(true_len(line) for line in content)
+    title_len = true_len(title) if title else 0
+    inner_len = max(width, title_len) + padding * 2
+
+    
+    def border(text):
+        return color_v2(text, color_code)
+    top    = border("╔" + "═" * inner_len + "╗")
+    mid    = border("║" ) 
+    bottom = border("╚" + "═" * inner_len + "╝")
+
+    tt = [top]
+
+    if title is not None:
+        total_space = inner_len - title_len
+        left = total_space // 2
+        right = total_space - left
+        tt.append(mid + " " * left + title + " " * right + mid)
+        tt.append(border("╠" + "═" * inner_len + "╣"))
+
+    for line in content:
+        gap = inner_len - true_len(line) - padding
+        if gap < 0:
+            gap = 0
+        row = mid + " " * padding + line + " " * gap + mid
+        tt.append(row)
+    tt.append(bottom)
+    return "\n".join(tt)
+
+
+def success(msg):
+    return color_v2(f"{msg}", GREEN, BOLD)
+
+def warning(msg):
+    return color_v2(f"{msg}", YELLOW, BOLD)
+
+def error(msg):
+    return color_v2(f"{msg}", RED, BOLD)
+
+def info(msg):
+    return color_v2(f"{msg}", CYAN)
+
+def render_menu(title, items, color_code=WHITE):
+    code_width = max((len(str(code)) for code, _ in items), default=1)
+
+    rows = []
+    for code, label in items:
+        key_str = str(code).rjust(code_width)
+        cover = color_v2(f"[{key_str}]", BOLD, color_code)
+        row = f"{cover}  {label}"
+        rows.append(row)
+
+    framed_title = color_v2(title, BOLD, color_code)
+    return draw_box(rows, title=framed_title, color_code=color_code, padding=2)
+
+def divider(width=None, color_code=WHITE):
+    if width == None:
+        width = 50
+    return color_v2("━" * width, color_code)
+
+
 def color(text, color_code, bold=False):
     style = f"{BOLD}{color_code}" if bold else color_code
     return f"{style}{text}{RESET}\n"
+
+def color_v2(text, color_code):
+    color = "".join(color_code)
+    return f"{color}{text}{RESET}"
+
 
 def progress_bar(iteration, total, prefix='', suffix='', length=30, fill='\u2588'):
     total = max(1, total)
@@ -177,18 +262,4 @@ def clear_screen():
 
 
 if __name__ == "__main__":
-    # 测试颜色包装函数
-    print(color("【成功】 预约已创建！", GREEN, bold=True))
-    print(color("【警告】 客户迟到 15 分钟！", YELLOW))
-    print(color("【错误】 付款失败，余额不足！", RED, bold=True))
-    print()
-
-    # 测试进度条
-    print("正在模拟生成财务报表...")
-    items = 50
-    for i in range(items + 1):
-        progress_bar(i, items, prefix='Generating Report', suffix='Done', length=30)
-        time.sleep(0.03)  # 模拟耗时操作
-
-    print(color("报表生成完毕，已保存至 data/payments.txt！", GREEN, bold=True))
-
+    print(draw_box(["Line one", "A longer second line here"], title = "NAME"))

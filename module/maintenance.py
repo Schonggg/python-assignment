@@ -1,9 +1,21 @@
-from datetime import date
+from datetime import date, datetime
 
 from .utils import (
     read_lines,
-    EQUIPMENT_FILE
+    write_lines,
+    primary_key,
+    validate_date,
+    EQUIPMENT_FILE,
+    MAINTENANCE_FILE
 )
+
+Max_Wear = 100
+
+Status_Need_Service = "Need Service"
+Status_Operational = "Operational"
+
+Wear_Per_Use = 5
+
 
 def get_equipments():
     
