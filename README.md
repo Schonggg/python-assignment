@@ -14,3 +14,12 @@ Then the variable code will be changed to the primary_key that you are referring
 For example: if the customer.txt have 2 customer, the code = C003, as this is the 3rd customer
 
 *All you have to do is change the primary_key(PATH) to the correct PATH, the code will change accordingly.
+
+Reference List:
+https://gist.github.com/fnky/458719343aabd01cfb17a3a4f7296797
+
+https://docs.python.org/3/library/re.html
+
+https://github.com/adobe-type-tools/box-drawing
+
+https://pkg.go.dev/github.com/ayn2op/tview
