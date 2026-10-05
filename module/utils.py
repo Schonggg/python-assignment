@@ -1,7 +1,6 @@
 import os
 import re
 import sys
-import time
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(BASE_DIR, "data")
@@ -15,6 +14,7 @@ SCHEDULE_FILE = os.path.join(DATA_DIR, "schedules.txt")
 SERVICE_FILE = os.path.join(DATA_DIR, "service.txt")
 LOG_FILE = os.path.join(DATA_DIR, "logs.txt")
 USER_FILE = os.path.join(DATA_DIR, "users.txt")
+SERVICE_EQUIPMENT_FILE = os.path.join(DATA_DIR, "service_equipment.txt")
 
 
 def ensure_file(path):
@@ -224,6 +224,8 @@ def progress_bar(iteration, total, prefix='', suffix='', length=30, fill='\u2588
 #        length = 30
 #    )
 
+def pause():
+    input("\nPress Enter to continue...")
 
 def validate_date(date_str):
     if len(date_str) != 10:

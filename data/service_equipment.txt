@@ -1,0 +1,4 @@
+Service_ID|Equipment_ID
+SV001|EQ001
+SV002|EQ003
+SV003|EQ002

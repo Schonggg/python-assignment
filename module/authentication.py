@@ -92,7 +92,7 @@ def register_username():
             continue
 
         if username.lower() in forbidden:
-            print(color("FUCK YOU NIGGA", RED, bold=True))
+            print(color("Username are forbidden", RED, bold=True))
             continue
 
         if username.lower() == "admin" or username.lower() == "officer1" or username.lower() == "accountant1" or username.lower() == "tech_boon":
