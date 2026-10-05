@@ -15,7 +15,6 @@ from .utils import (
     info
 )
 
-print("BOOKING.PY VALIDATE_DATE:", validate_date)
 
 # SERVICE FUNCTIONS
 
@@ -441,7 +440,7 @@ def complete_booking(booking_id):
         print(error("Booking not found"))
         return False
 
-    if booking["Status"] == "Confirmed":
+    if booking["Status"] != "Confirmed":
         print(warning("Only confirmed bookings can be completed."))
         return False
 
@@ -451,6 +450,9 @@ def complete_booking(booking_id):
             break
 
     save_bookings(bookings)
+
+    #update customer loyalty points and tier
+    update_customer_loyalty(booking["Customer_ID"])
 
     # +5 bumped value for each equipment once booking marked as completed
     from .maintenance import get_equipments_for_service, increment_equipment_wear

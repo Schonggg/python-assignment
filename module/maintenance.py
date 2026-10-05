@@ -26,7 +26,7 @@ def get_equipments():
         if parts[0].lower() in {"equipment_id"}:
             continue
 
-        if len(parts) == 5:
+        if len(parts) != 5:
             continue
 
         equipment_id = parts[0]
