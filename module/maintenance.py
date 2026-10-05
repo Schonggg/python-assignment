@@ -4,7 +4,11 @@ from .utils import (
     read_lines,
     write_lines,
     primary_key,
+    draw_box,
     validate_date,
+    error,
+    warning,
+    info,
     EQUIPMENT_FILE,
     MAINTENANCE_FILE,
     SERVICE_EQUIPMENT_FILE
@@ -18,7 +22,7 @@ Status_Operational = "Operational"
 Durabiltiy_Per_Use = 5
 
 
-def _parse_equipment_parts(parts):
+def parse_equipment_parts(parts):
 
     if len(parts) not in (5, 6):
         return None
@@ -49,6 +53,21 @@ def _parse_equipment_parts(parts):
     )
 
 
+def effective_wear(equipment):
+    # Time-based decay is computed ON READ (we deliberately do NOT mutate the
+    # file on every read). Effective wear = stored wear + 1 per day since the
+    # Last_Service_Date, clamped at MAX_WEAR. If the date is unparseable we
+    # fall back to the stored wear only.
+    stored_wear = equipment.get("durability", 0)
+    days = day_last_service(equipment.get("last_service_date"))
+
+    if days is None:
+        return min(Max_Durability, stored_wear)
+
+    return min(Max_Durability, stored_wear + days)
+
+
+
 def day_last_service(last_service_date):
     try:
         last_service = datetime.strptime(last_service_date, "%Y-%m-%d").date()
@@ -59,16 +78,16 @@ def day_last_service(last_service_date):
 
 def effective_durability(equipment):
 
-    stored_dura = equipment.get("durability", 100)
+    stored_durability = equipment.get("durability", 100)
     days = day_last_service(equipment.get("last_service_date"))
 
     if days is None:
-        return min(Max_Durability, stored_dura)
+        return min(Max_Durability, stored_durability)
 
-    return min(Max_Durability, stored_dura - days)
+    return min(Max_Durability, stored_durability - days)
 
 
-def _write_equipment(update_fn):
+def write_equipment(update_fn):
 
     lines = read_lines(EQUIPMENT_FILE)
 
@@ -76,7 +95,7 @@ def _write_equipment(update_fn):
         return False
 
     updated_lines = [
-        "Equipment_ID|Equipment_Name|Category|Status|Last_Service_Date|Wear"
+        "Equipment_ID|Equipment_Name|Category|Status|Last_Service_Date|Durability"
     ]
     found = False
 
@@ -86,21 +105,21 @@ def _write_equipment(update_fn):
         if parts and parts[0].lower() == "equipment_id":
             continue
 
-        parsed = _parse_equipment_parts(parts)
+        parsed = parse_equipment_parts(parts)
         if parsed is None:
             continue
 
         (equipment_id, equipment_name, category,
-         status, last_service_date, stored_wear) = parsed
+         status, last_service_date, stored_durability) = parsed
 
         change = update_fn(parsed)
         if change is not None:
-            status, last_service_date, stored_wear = change
+            status, last_service_date, stored_durability = change
             found = True
 
         updated_lines.append(
             f"{equipment_id}|{equipment_name}|{category}|"
-            f"{status}|{last_service_date}|{stored_wear}"
+            f"{status}|{last_service_date}|{stored_durability}"
         )
 
     with open(EQUIPMENT_FILE, "w", encoding="utf-8") as f:
@@ -119,24 +138,24 @@ def get_equipments():
         if parts[0].lower() in {"equipment_id"}:
             continue
 
-        if len(parts) == 6:
+        parsed = parse_equipment_parts(parts)
+        if parsed is None:
             continue
 
-        equipment_id = parts[0]
-        equipment_name = parts[1]
-        category = parts[2]
-        status = parts[3].lower()
-        last_service_date = parts[4]
-        durability = parts[5]
-        
-        equipment.append({
+        (equipment_id, equipment_name, category,
+         status, last_service_date, stored_durability) = parsed
+
+        record = {
             "equipment_id": equipment_id,
             "equipment_name": equipment_name,
             "category": category,
-            "status": status,
+            "status": status.lower(),
             "last_service_date": last_service_date,
-            "durability": durability
-            })
+            "durability": stored_durability,
+        }
+        record["current_durability"] = effective_durability(record)
+
+        equipment.append(record)
     return equipment
 
 def find_equipment(equipment_id):
@@ -181,7 +200,7 @@ def equipment_status_change(equipment_id, new_status):
             return (new_status, last_service_date, stored_wear)
         return None
 
-    return _write_equipment(update)
+    return write_equipment(update)
 
 
 
@@ -200,7 +219,7 @@ def durability_decrease(equipment_id, value = Durabiltiy_Per_Use):
 
         return (status, last_service_date, new_wear)
 
-    return _write_equipment(update)
+    return write_equipment(update)
 
 
 def recompute_equipment_status():
@@ -244,24 +263,6 @@ def get_equipment_for_service(service_id):
     return mapped
 
 
-def _ensure_trailing_newline(path):
-    # some data files are stored without a trailing newline. write_lines()
-    # appends in "a" mode, so without this guard a new record would be glued
-    # onto the previous line and corrupt it. ensure the file ends with "\n".
-    import os
-
-    if not os.path.exists(path) or os.path.getsize(path) == 0:
-        return
-
-    with open(path, "rb") as handle:
-        handle.seek(-1, os.SEEK_END)
-        last_byte = handle.read(1)
-
-    if last_byte != b"\n":
-        with open(path, "a", encoding="utf-8") as handle:
-            handle.write("\n")
-
-
 def record_maintenance(equipment_id, maintenance_date, cost,
                        staff_user_id, description):
     # record a maintenance job against an equipment item.
@@ -272,13 +273,13 @@ def record_maintenance(equipment_id, maintenance_date, cost,
 
     # step 1: check the equipment exists
     if find_equipment(equipment_id) is None:
-        print("Invalid Equipment ID.")
+        print(warning("Invalid Equipment ID."))
         return False
 
     # step 2: validate the maintenance date
     if not validate_date(maintenance_date):
-        print("Invalid date.")
-        print("Please use YYYY-MM-DD format.")
+        print(warning("Invalid date."))
+        print(info("Please use YYYY-MM-DD format."))
         return False
 
     # step 3: validate the cost
@@ -300,7 +301,6 @@ def record_maintenance(equipment_id, maintenance_date, cost,
         f"{staff_user_id}|"
         f"{description}"
     )
-    _ensure_trailing_newline(MAINTENANCE_FILE)
     write_lines(MAINTENANCE_FILE, new_record)
 
     # step 6: update the equipment status to reflect completed maintenance.
@@ -312,16 +312,19 @@ def record_maintenance(equipment_id, maintenance_date, cost,
             return (Status_Operational, maintenance_date, 0)
         return None
 
-    _write_equipment(_reset_after_maintenance)
+    write_equipment(_reset_after_maintenance)
 
     # step 7: display confirmation
-    print(f"\n{'=' * 10} MAINTENANCE RECORDED {'=' * 10}")
-    print(f"Maint ID    : {maint_id}")
-    print(f"Equipment ID: {equipment_id}")
-    print(f"Date        : {maintenance_date}")
-    print(f"Cost        : RM{cost_value:.2f}")
-    print(f"Staff       : {staff_user_id}")
-    print(f"Description : {description}")
+    print(draw_box(
+        [
+            f"Maint ID    : {maint_id}"
+            f"Equipment ID: {equipment_id}"
+            f"Date        : {maintenance_date}"
+            f"Cost        : RM{cost_value:.2f}"
+            f"Staff       : {staff_user_id}"
+            f"Description : {description}"       
+        ], "MAINTENANCE RECORDED"
+    ))
 
     return True
 
