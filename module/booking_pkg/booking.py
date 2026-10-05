@@ -1,4 +1,4 @@
-from .utils import (
+from ..utils import (
     BOOKING_FILE,
     SERVICE_FILE,
     SCHEDULE_FILE,
@@ -455,7 +455,7 @@ def complete_booking(booking_id):
     update_customer_loyalty(booking["Customer_ID"])
 
     # +5 bumped value for each equipment once booking marked as completed
-    from .maintenance import get_equipments_for_service, increment_equipment_wear
+    from .maintenance_pkg import get_equipments_for_service, increment_equipment_wear
 
     service_id = booking["Service_ID"]
     bumped = []

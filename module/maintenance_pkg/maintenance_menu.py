@@ -1,4 +1,4 @@
-from ..maintenance import (
+from module.maintenance_pkg.maintenance import (
     get_equipments,
     get_equipment_needing_service,
     equipment_status_change,
@@ -7,7 +7,7 @@ from ..maintenance import (
     maintenance_summary,
     recompute_equipment_status,
 )
-from .. import booking
+from module.booking_pkg import booking
 from ..utils import (
     render_menu,
     draw_box,
@@ -148,7 +148,7 @@ def maintenance_menu():
 
         elif choice == "7":
             booking_id = input("Enter Booking ID to mark as Completed: ").strip()
-            booking.complete_booking(booking_id)
+            booking_pkg.complete_booking(booking_id)
 
         elif choice == "0":
             print(info("Logging out..."))

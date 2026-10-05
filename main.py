@@ -1,11 +1,28 @@
 def main():
+    from module.utils import(
+        clear_screen,
+        render_menu,
+        error
+    )
+
+
+    clear_screen()
+
     while True:
-        print("1) Login\n2) Register user\n3) Exit")
+        print(render_menu(
+            "MAIN MENU",
+            [("1", "Login"), ("2", "Register user"), ("3", "Exit")]
+        ))
+
         choice = input("> ").strip()
         if choice == "1":
-            from module.admin import admin_menu
+            from module.admin.admin_menu import admin_menu
             from module.authentication import login
-            from module.customer.customer_menu import customer_menu
+            from module.customer_pkg.customer_menu import customer_menu
+            from module.maintenance_pkg.maintenance_menu import maintenance_menu
+            from module.finance_pkg.finance_menu import finance_menu
+            from module.booking_pkg.booking_menu import booking_menu
+            from module.utils import warning
             from module.utils import clear_screen
             import time
 
@@ -13,15 +30,36 @@ def main():
             if not user:
                 continue
 
-            if user["role"] in ("admin"):
+            role = user["role"].lower()
+
+            
+            if role == "admin":
                 time.sleep(2.5)
                 clear_screen()
                 admin_menu()
 
-            else:
+            elif role == "customer":
                 time.sleep(2.5)
                 clear_screen()
                 customer_menu(user["username"])
+
+            elif role == "maintenance":
+                time.sleep(2.5)
+                clear_screen()
+                maintenance_menu()
+
+            elif role == "officer":
+                time.sleep(2.5)
+                clear_screen()
+                booking_menu()
+
+            elif role == "accountant":
+                time.sleep(2.5)
+                clear_screen()
+                finance_menu()
+
+            else:
+                print(warning("This role has no menu yet."))
 
         elif choice == "2":
             from module.authentication import register_username, register_all

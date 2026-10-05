@@ -1,6 +1,6 @@
 import os
 
-from .utils import(
+from ..utils import(
     PAYMENT_FILE,
     BOOKING_FILE,
     SERVICE_FILE,
@@ -8,7 +8,11 @@ from .utils import(
     write_lines,
     primary_key,
     validate_date,
-    draw_box
+    draw_box,
+    error,
+    warning,
+    success,
+    info
 )
 
 def get_payment():
@@ -239,91 +243,60 @@ def outstanding_payment_list():
     }
     return outstanding, totals
 
-    
-from datetime import datetime   
 
-def generate_payment_id():
+def record_payment(booking_id, base_amount, discount_amount, penalty_fee,
+                   tax_amount, total_amount, payment_status, payment_method,
+                   payment_date):
 
-    file = open(r"C:\Users\kirel\OneDrive\Documents\Python\payments.txt","r")
-    lines = file.readlines()
-    file.close()
+    booking_services = booking_service_id()
 
-    if len(lines) == 0:
-        return "P001"
-    
-    last_line = lines[-1]
-    last_payment_id = last_line.split("|")[0]
+    if booking_id not in booking_services:
+        print(warning("Booking not found."))
+        return False
 
-    number = int(last_payment_id.replace("P", ""))
-    number += 1
-    return f"P{number:03d}"
+    try:
+        base_value = float(base_amount)
+        discount_value = float(discount_amount)
+        penalty_value = float(penalty_fee)
+        tax_value = float(tax_amount)
+        total_value = float(total_amount)
 
-
-def record_payment():
-
-    booking_id_search = input("Enter Booking ID: ")
-    if bool(booking_id_search):
-        print("Booking ID entered")
-#ID start with B001,B002,n+
-
-    file = open(
-        r"C:\Users\kirel\OneDrive\Documents\Python\bookings.txt",
-        "r")
-#better write the destination of file in full path to avoid errors
-
-    
-
-    for line in file:
-        booking_id, customer, service, amount = line.strip().split("|")
-    #status only show in payments.txt 
-
-        if booking_id == booking_id_search:
-
-            
-            print("| Booking Found |")
-            print("Customer:", customer)
-            print("Service:", service)
-            print("Amount: RM", amount)
+    except (ValueError, TypeError):
+        print(error("Invalid amount. Please enter numbers."))
+        return False
 
 
-            status = input("Enter Status (Paid/Unpaid): ")
-            while status.lower() not in ["paid", "unpaid"]:
-                print("Invalid status. Please enter 'Paid' or 'Unpaid'.")
-                status = input("Enter Status (Paid/Unpaid): ")
-            payment_id = generate_payment_id()
-            payment_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    if not validate_date(payment_date):
+        print(warning("Invalid date."))
+        print(info("Please use YYYY-MM-DD format."))
+        return False
 
-            payment_file = open( r"C:\Users\kirel\OneDrive\Documents\Python\payments.txt",
-            "a")
+    payment_id = primary_key(PAYMENT_FILE)
 
-            payment_file.write(
-            payment_id + "|" +
-            customer + " | " +
-            service + " | " +
-            "RM" + amount + " | " +
-            status.upper() + " | " +
-            booking_id + " | " +
-            payment_date + "\n"
-            )
+    new_record = (
+        f"{payment_id}|"
+        f"{booking_id}|"
+        f"{base_value:.2f}|"
+        f"{discount_value:.2f}|"
+        f"{penalty_value:.2f}|"
+        f"{tax_value:.2f}|"
+        f"{total_value:.2f}|"
+        f"{payment_status}|"
+        f"{payment_method}|"
+        f"{payment_date}"
+    )
 
-            payment_file.close()
+    write_lines(PAYMENT_FILE, new_record)
 
-            print("--Payment Recorded Successfully--")
-            break
-    else:
-        print("--Booking Not Found--")
-    file.close()
+    print(draw_box(
+        [
+            f"Payment ID : {payment_id}"
+            f"Booking ID : {booking_id}"
+            f"Total      : RM{total_value:.2f}"
+            f"Status     : {payment_status}"
+            f"Method     : {payment_method}"
+            f"Date       : {payment_date}"
+        ], "PAYMENT RECORDED"
+    ))
 
-while True:
-
-    record_payment()
-
-    print("\n1. Make another payment record\n2. Exit")
-    again = input("Make your choice: ")
-    if again == "1":
-        continue
-    
-    else:
-        break
-
-record_payment()
+    return True

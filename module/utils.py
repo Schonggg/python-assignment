@@ -143,42 +143,11 @@ def draw_box(lines, title = None, color_code = WHITE, padding = 1):
     return "\n".join(tt)
 
 
-def success(msg):
-    return color_v2(f"{msg}", GREEN, BOLD)
-
-def warning(msg):
-    return color_v2(f"{msg}", YELLOW, BOLD)
-
-def error(msg):
-    return color_v2(f"{msg}", RED, BOLD)
-
-def info(msg):
-    return color_v2(f"{msg}", CYAN)
-
-def render_menu(title, items, color_code=WHITE):
-    code_width = max((len(str(code)) for code, _ in items), default=1)
-
-    rows = []
-    for code, label in items:
-        key_str = str(code).rjust(code_width)
-        cover = color_v2(f"[{key_str}]", BOLD, color_code)
-        row = f"{cover}  {label}"
-        rows.append(row)
-
-    framed_title = color_v2(title, BOLD, color_code)
-    return draw_box(rows, title=framed_title, color_code=color_code, padding=2)
-
-def divider(width=None, color_code=WHITE):
-    if width == None:
-        width = 50
-    return color_v2("━" * width, color_code)
-
-
 def color(text, color_code, bold=False):
     style = f"{BOLD}{color_code}" if bold else color_code
     return f"{style}{text}{RESET}\n"
 
-def color_v2(text, color_code):
+def color_v2(text, *color_code):
     color = "".join(color_code)
     return f"{color}{text}{RESET}"
 
@@ -226,6 +195,38 @@ def progress_bar(iteration, total, prefix='', suffix='', length=30, fill='\u2588
 
 def pause():
     input("\nPress Enter to continue...")
+
+
+def success(msg):
+    return color_v2(f"{msg}", GREEN, BOLD)
+
+def warning(msg):
+    return color_v2(f"{msg}", YELLOW, BOLD)
+
+def error(msg):
+    return color_v2(f"{msg}", RED, BOLD)
+
+def info(msg):
+    return color_v2(f"{msg}", CYAN)
+
+def render_menu(title, items, color_code=WHITE):
+    code_width = max((len(str(code)) for code, _ in items), default=1)
+
+    rows = []
+    for code, label in items:
+        key_str = str(code).rjust(code_width)
+        cover = color_v2(f"[{key_str}]", BOLD, color_code)
+        row = f"{cover}  {label}"
+        rows.append(row)
+
+    framed_title = color_v2(title, BOLD, color_code)
+    return draw_box(rows, title=framed_title, color_code=color_code, padding=2)
+
+def divider(width=None, color_code=WHITE):
+    if width == None:
+        width = 50
+    return color_v2("━" * width, color_code)
+
 
 def validate_date(date_str):
     if len(date_str) != 10:

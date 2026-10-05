@@ -1,6 +1,6 @@
 from datetime import date, datetime
 
-from .utils import (
+from ..utils import (
     read_lines,
     write_lines,
     primary_key,
@@ -19,7 +19,7 @@ Max_Durability = 100
 Status_Need_Service = "Need Service"
 Status_Operational = "Operational"
 
-Durabiltiy_Per_Use = 5
+Durabilitiy_Per_Use = 5
 
 
 def parse_equipment_parts(parts):
@@ -206,7 +206,7 @@ def equipment_status_change(equipment_id, new_status):
 
 
 
-def durability_decrease(equipment_id, value = Durabiltiy_Per_Use):
+def durability_decrease(equipment_id, value = Durabilitiy_Per_Use):
     def update(parsed):
         (eq_id, _name, _cat, status, last_service_date, stored_wear) = parsed
         if eq_id != equipment_id:
