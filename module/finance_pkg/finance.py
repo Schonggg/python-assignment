@@ -1,4 +1,5 @@
 import os
+from module.maintenance_pkg.maintenance import get_maintenance_records
 
 from ..utils import(
     PAYMENT_FILE,
@@ -152,8 +153,13 @@ def monthly_financial_summary(month=None):
 
     paid_count = 0
     unpaid_count = 0
-    income = 0
-    outstanding = 0
+    income = 0.0
+    outstanding = 0.0
+    maintenance_expenses = sum(
+        record["cost"]
+        for record in get_maintenance_records()
+        if record["maintenance_date"][:7] == month
+    )
 
 
     for payment in get_payment():
@@ -165,7 +171,7 @@ def monthly_financial_summary(month=None):
 
         status = payment["payment_status"]
 
-        if status.strip().lower():
+        if status.strip().lower() == "paid":
             paid_count += 1
             income += amount
 
@@ -176,10 +182,11 @@ def monthly_financial_summary(month=None):
     print(draw_box(
         [
             f"Month: {month}",
-            f"Total Paid Transactions: {paid_count}"
-            f"Total Outstanding Transactions: {unpaid_count}",
-            f"Total Income: RM{income:.2f}"
-            f"Outstanding Amount: RM{outstanding:.2f}"
+            f"Paid Transactions       : {paid_count}",
+            f"Outstanding Transactions: {unpaid_count}",
+            f"Paid Income             : RM{income:.2f}",
+            f"Outstanding Amount      : RM{outstanding:.2f}",
+            f"Equipment Maintenance   : RM{maintenance_expenses:.2f}",
         ], "MONTHLY FINANCIAL SUMMARY"
     ))
 
@@ -290,11 +297,11 @@ def record_payment(booking_id, base_amount, discount_amount, penalty_fee,
 
     print(draw_box(
         [
-            f"Payment ID : {payment_id}"
-            f"Booking ID : {booking_id}"
-            f"Total      : RM{total_value:.2f}"
-            f"Status     : {payment_status}"
-            f"Method     : {payment_method}"
+            f"Payment ID : {payment_id}",
+            f"Booking ID : {booking_id}",
+            f"Total      : RM{total_value:.2f}",
+            f"Status     : {payment_status}",
+            f"Method     : {payment_method}",
             f"Date       : {payment_date}"
         ], "PAYMENT RECORDED"
     ))

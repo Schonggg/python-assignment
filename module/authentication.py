@@ -122,7 +122,9 @@ def register_all(username):
         full_name = input("\nPlease enter full name: ").strip()
 
         while True:
-            phone = input("\nPlease enter phone number: ").strip().replace(" ", "")
+            phone = input(
+                "\nPlease enter phone number (e.g. 0123456789): "
+            ).strip().replace(" ", "")
 
             if not phone.isdigit():
                 print(color("Phone number must contain only number. Please try again.", RED))
@@ -137,7 +139,11 @@ def register_all(username):
                     print(color("Phone number must be 10 character. Please try again.", RED))
                     continue
             break
-        email = input("\nPlesae enter email: ").strip()
+        while True:
+            email = input("\nPlease enter email (must include @gmail.com): ").strip()
+            if "@gmail.com" in email.lower():
+                break
+            print(color("Email must include @gmail.com. Please try again.", RED))
 
         code_user = primary_key(USER_FILE)
         line_user = f"{code_user}|{username}|{password2}|Customer|{date.today()}\n"

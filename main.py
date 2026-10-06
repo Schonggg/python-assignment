@@ -3,12 +3,12 @@ def main():
         clear_screen,
         render_menu,
         error,
-        generate_weekly_schedule
+        process_due_bookings,
     )
 
 
     clear_screen()
-    generate_weekly_schedule()
+    process_due_bookings()
 
     while True:
         print(render_menu(
@@ -24,8 +24,7 @@ def main():
             from module.maintenance_pkg.maintenance_menu import maintenance_menu
             from module.finance_pkg.finance_menu import finance_menu
             from module.booking_pkg.booking_menu import booking_menu
-            from module.utils import warning
-            from module.utils import clear_screen
+            from module.utils import clear_screen, show_startup_messages
             import time
 
             user = login()
@@ -38,6 +37,7 @@ def main():
             if role == "admin":
                 time.sleep(2.5)
                 clear_screen()
+                show_startup_messages(role)
                 admin_menu()
 
             elif role == "customer":
@@ -48,16 +48,19 @@ def main():
             elif role == "maintenance":
                 time.sleep(2.5)
                 clear_screen()
-                maintenance_menu()
+                show_startup_messages(role)
+                maintenance_menu(user["user_id"])
 
             elif role == "officer":
                 time.sleep(2.5)
                 clear_screen()
+                show_startup_messages(role)
                 booking_menu()
 
             elif role == "accountant":
                 time.sleep(2.5)
                 clear_screen()
+                show_startup_messages(role)
                 finance_menu()
 
             else:

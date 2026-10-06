@@ -1,7 +1,9 @@
 import os
 import re
 import sys
+from contextlib import redirect_stdout
 from datetime import date, datetime, timedelta
+from io import StringIO
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(BASE_DIR, "data")
@@ -27,6 +29,19 @@ TIME_SLOTS = [
 
 TEAMS = ["Team Alpha", "Team Beta"]
 
+_startup_messages = {}
+_startup_messages_displayed = set()
+
+
+def show_startup_messages(role):
+    role = role.lower()
+    if role in _startup_messages_displayed:
+        return
+
+    _startup_messages_displayed.add(role)
+    for message in _startup_messages.get(role, []):
+        print(message)
+
 
 def ensure_file(path):
     os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -44,8 +59,16 @@ def read_lines(path):
 
 def write_lines(path, line):
     ensure_file(path)
-    with open(path, "a", encoding="utf-8") as handle:
-        handle.write(line.strip() + "\n")
+    with open(path, "rb+") as handle:
+        handle.seek(0, os.SEEK_END)
+        end_position = handle.tell()
+        if end_position:
+            handle.seek(-1, os.SEEK_END)
+            if handle.read(1) != b"\n":
+                handle.seek(0, os.SEEK_END)
+                handle.write(b"\n")
+        handle.seek(0, os.SEEK_END)
+        handle.write((line.strip() + "\n").encode("utf-8"))
 
 
 def the_code(path, prefix):
@@ -403,7 +426,6 @@ def generate_schedule_for_date(date_str):
 
     #de-dup by date so we never append a second roster for the same day
     if schedule_date_exists(date_str):
-        print(warning(f"A schedule already exists for {date_str}."))
         return 0
 
     #avoid gluing the first new row onto the last existing line
@@ -487,8 +509,153 @@ def generate_weekly_schedule():
             f"Generated {created} schedule rows for the week starting "
             f"{start_date.strftime('%Y-%m-%d')}."
         ))
-    else:
-        print(info("The weekly schedule already exists; no rows were added."))
+
+
+def process_due_bookings():
+    global _startup_messages, _startup_messages_displayed
+
+    from random import choice, random
+
+    from module.booking_pkg.booking import (
+        complete_booking,
+        calculate_penalty,
+        find_service,
+        get_bookings,
+        update_attendance,
+    )
+    from module.finance_pkg.finance import get_payment, record_payment
+
+    _startup_messages = {
+        "admin": [],
+        "officer": [],
+        "accountant": [],
+        "maintenance": [],
+    }
+    _startup_messages_displayed = set()
+
+    schedule_output = StringIO()
+    with redirect_stdout(schedule_output):
+        generate_weekly_schedule()
+    weekly_schedule = schedule_output.getvalue().strip()
+    if weekly_schedule:
+        _startup_messages["officer"].append(weekly_schedule)
+        _startup_messages["admin"].append(weekly_schedule)
+
+    schedule_dates = {}
+    for line in read_lines(SCHEDULE_FILE)[1:]:
+        parts = [part.strip() for part in line.split("|")]
+        if len(parts) == 5:
+            schedule_dates[parts[0]] = date.fromisoformat(parts[1])
+
+    payment_booking_ids = {
+        payment["booking_id"] for payment in get_payment()
+    }
+    today = date.today()
+    completed_count = 0
+    payment_count = 0
+    startup_warnings = []
+
+    for booking in get_bookings():
+        if booking["Status"] != "Confirmed":
+            continue
+
+        service_date = schedule_dates.get(booking["Schedule_ID"])
+        if service_date is None:
+            startup_warnings.append(warning(
+                f"Booking {booking['Booking_ID']} has no valid schedule date."
+            ))
+            continue
+        if service_date > today:
+            continue
+
+        has_payment = booking["Booking_ID"] in payment_booking_ids
+        service = find_service(booking["Service_ID"]) if not has_payment else None
+        if not has_payment and service is None:
+            startup_warnings.append(warning(
+                f"Booking {booking['Booking_ID']} has no matching service; "
+                "it was not completed."
+            ))
+            continue
+
+        attendance_status = "Late" if random() < 0.3 else "On Time"
+        attendance_output = StringIO()
+        with redirect_stdout(attendance_output):
+            attendance_updated = update_attendance(
+                booking["Booking_ID"], attendance_status
+            )
+        attendance_message = attendance_output.getvalue().strip()
+        if attendance_message:
+            for role in ("officer", "admin", "accountant"):
+                _startup_messages[role].append(attendance_message)
+        if not attendance_updated:
+            continue
+
+        if not has_payment:
+            base_amount = service["Price"]
+            discount_amount = 0.0
+            penalty_fee = calculate_penalty(attendance_status)
+            tax_amount = round(
+                (base_amount - discount_amount + penalty_fee) * 0.06,
+                2,
+            )
+            total_amount = round(
+                base_amount - discount_amount + penalty_fee + tax_amount,
+                2,
+            )
+
+            payment_output = StringIO()
+            with redirect_stdout(payment_output):
+                payment_recorded = record_payment(
+                    booking["Booking_ID"],
+                    base_amount,
+                    discount_amount,
+                    penalty_fee,
+                    tax_amount,
+                    total_amount,
+                    "Paid",
+                    choice(["Cash", "E-wallet"]),
+                    today.isoformat(),
+                )
+            payment_message = payment_output.getvalue().strip()
+            if payment_message:
+                _startup_messages["accountant"].append(payment_message)
+                _startup_messages["admin"].append(payment_message)
+            if not payment_recorded:
+                continue
+
+            payment_booking_ids.add(booking["Booking_ID"])
+            payment_count += 1
+
+        completion_output = StringIO()
+        with redirect_stdout(completion_output):
+            booking_completed = complete_booking(booking["Booking_ID"])
+        completion_message = completion_output.getvalue().strip()
+        equipment_marker = "Equipment durability decreased for:"
+        if equipment_marker in completion_message:
+            booking_message, equipment_message = completion_message.split(
+                equipment_marker, 1
+            )
+            booking_message = booking_message.strip()
+            equipment_message = equipment_marker + equipment_message
+            if booking_message:
+                _startup_messages["officer"].append(booking_message)
+                _startup_messages["admin"].append(booking_message)
+            _startup_messages["maintenance"].append(equipment_message.strip())
+            _startup_messages["admin"].append(equipment_message.strip())
+        elif completion_message:
+            _startup_messages["officer"].append(completion_message)
+            _startup_messages["admin"].append(completion_message)
+
+        if booking_completed:
+            completed_count += 1
+
+    _startup_messages["admin"].extend(startup_warnings)
+    _startup_messages["admin"].append(info(
+        f"Startup processing finished: {completed_count} booking(s) "
+        f"completed and {payment_count} new payment(s) recorded."
+    ))
+
+
 
 
 

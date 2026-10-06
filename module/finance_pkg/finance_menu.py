@@ -5,8 +5,14 @@ from ..utils import (
     success,
     error,
     info,
+    pause,
 )
-from module.finance_pkg import finance
+from module.finance_pkg.finance import (
+    income_summary,
+    monthly_financial_summary,
+    outstanding_payment_list,
+    record_payment
+)
 
 
 #sentinel returned by prompt_or_cancel when the accountant chooses to quit
@@ -21,6 +27,45 @@ def prompt_or_cancel(label):
         return _CANCEL
 
     return value
+
+
+def record_payment_flow():
+    print(info("Type 'q' at any prompt to cancel."))
+
+    prompts = (
+        ("Enter Booking ID: ", "booking_id"),
+        ("Enter Base Amount: ", "base_amount"),
+        ("Enter Discount Amount: ", "discount_amount"),
+        ("Enter Penalty Fee: ", "penalty_fee"),
+        ("Enter Tax Amount: ", "tax_amount"),
+        ("Enter Total Amount: ", "total_amount"),
+        ("Enter Payment Status (Paid/Pending): ", "payment_status"),
+        ("Enter Payment Method: ", "payment_method"),
+        ("Enter Payment Date (YYYY-MM-DD): ", "payment_date"),
+    )
+    values = {}
+
+    for prompt, field in prompts:
+        value = prompt_or_cancel(prompt)
+        if value is _CANCEL:
+            print(info("Record payment cancelled."))
+            return
+        values[field] = value
+
+    if record_payment(
+        values["booking_id"],
+        values["base_amount"],
+        values["discount_amount"],
+        values["penalty_fee"],
+        values["tax_amount"],
+        values["total_amount"],
+        values["payment_status"],
+        values["payment_method"],
+        values["payment_date"],
+    ):
+        print(success("Payment recorded successfully."))
+    else:
+        print(error("Failed to record payment."))
 
 
 def finance_menu():
@@ -40,83 +85,27 @@ def finance_menu():
 
         if choice == "1":
             print(divider())
-            finance_pkg.income_summary()
+            income_summary()
 
         elif choice == "2":
-            month = input("Enter Month (YYYY-MM): ").strip()
-            print(divider())
-            finance_pkg.monthly_financial_summary(month)
+            month = prompt_or_cancel("Enter Month (YYYY-MM, q to cancel): ")
+            if month is _CANCEL:
+                print(info("Monthly financial summary cancelled."))
+            else:
+                print(divider())
+                monthly_financial_summary(month)
 
         elif choice == "3":
             print(divider())
-            finance_pkg.outstanding_payment_list()
+            outstanding_payment_list()
 
         elif choice == "4":
-            #type q (or quit/exit) at any prompt to cancel the whole entry
-            print(info("Type 'q' at any prompt to cancel."))
-
-            booking_id = prompt_or_cancel("Enter Booking ID: ")
-            if booking_id is _CANCEL:
-                print(info("Record payment cancelled."))
-                continue
-
-            base_amount = prompt_or_cancel("Enter Base Amount: ")
-            if base_amount is _CANCEL:
-                print(info("Record payment cancelled."))
-                continue
-
-            discount_amount = prompt_or_cancel("Enter Discount Amount: ")
-            if discount_amount is _CANCEL:
-                print(info("Record payment cancelled."))
-                continue
-
-            penalty_fee = prompt_or_cancel("Enter Penalty Fee: ")
-            if penalty_fee is _CANCEL:
-                print(info("Record payment cancelled."))
-                continue
-
-            tax_amount = prompt_or_cancel("Enter Tax Amount: ")
-            if tax_amount is _CANCEL:
-                print(info("Record payment cancelled."))
-                continue
-
-            total_amount = prompt_or_cancel("Enter Total Amount: ")
-            if total_amount is _CANCEL:
-                print(info("Record payment cancelled."))
-                continue
-
-            payment_status = prompt_or_cancel("Enter Payment Status (Paid/Pending): ")
-            if payment_status is _CANCEL:
-                print(info("Record payment cancelled."))
-                continue
-
-            payment_method = prompt_or_cancel("Enter Payment Method: ")
-            if payment_method is _CANCEL:
-                print(info("Record payment cancelled."))
-                continue
-
-            payment_date = prompt_or_cancel("Enter Payment Date (YYYY-MM-DD): ")
-            if payment_date is _CANCEL:
-                print(info("Record payment cancelled."))
-                continue
-
-            if finance_pkg.record_payment(
-                booking_id,
-                base_amount,
-                discount_amount,
-                penalty_fee,
-                tax_amount,
-                total_amount,
-                payment_status,
-                payment_method,
-                payment_date,
-            ):
-                print(success("Payment recorded successfully."))
-            else:
-                print(error("Failed to record payment."))
+            record_payment_flow()
 
         elif choice == "0":
             print(info("Logging out..."))
             break
         else:
             print(error("Invalid choice, try again."))
+
+        pause()

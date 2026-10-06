@@ -460,20 +460,23 @@ def complete_booking(booking_id):
     update_customer_loyalty(booking["Customer_ID"])
 
     # +5 bumped value for each equipment once booking marked as completed
-    from .maintenance_pkg import get_equipments_for_service, increment_equipment_wear
+    from module.maintenance_pkg.maintenance import (
+        durability_decrease,
+        get_equipment_for_service,
+    )
 
     service_id = booking["Service_ID"]
     bumped = []
 
-    for equipment_id in get_equipments_for_service(service_id):
-        if increment_equipment_wear(equipment_id, 5):
+    for equipment_id in get_equipment_for_service(service_id):
+        if durability_decrease(equipment_id, 5):
             bumped.append(equipment_id)
 
     print(success(f"Booking {booking_id} has been marked as Completed."))
 
     if bumped:
         print(info(
-            "Equipment wear increased for: " + ", ".join(bumped)
+            "Equipment durability decreased for: " + ", ".join(bumped)
         ))
 
     return True
@@ -807,7 +810,7 @@ def find_schedule_for(date, time_slot):
             and schedule["Time_Slot"] == time_slot
             and is_schedule_available(schedule)
         ):
-            return None
+            return schedule
         
     return None
 
@@ -828,7 +831,7 @@ def find_next_available_schedule(user_date, user_time_slot):
         if (schedule["Date"], schedule["Time_Slot"]) >= user_want:
             return schedule
 
-    return available[0]
+    return None
 
 
 
@@ -950,4 +953,3 @@ def update_customer_loyalty(customer_id):
         f.write("\n".join(updated_lines) + "\n")
 
     return True
-

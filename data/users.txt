@@ -7,3 +7,4 @@ USR004|tech_boon|tech123|Maintenance|2026-08-11
 USR005|Schong|123456|Customer|2026-08-14
 USR006|LB|123456|Customer|2026-08-14
 USR007|jinyi|123456|Customer|2026-09-27
+USR008|Schong2|123456|Customer|2026-10-07

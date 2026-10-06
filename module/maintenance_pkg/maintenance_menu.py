@@ -1,4 +1,6 @@
 from module.maintenance_pkg.maintenance import (
+    Status_Need_Service,
+    Status_Operational,
     get_equipments,
     get_equipment_needing_service,
     equipment_status_change,
@@ -16,7 +18,14 @@ from ..utils import (
     warning,
     error,
     info,
+    pause,
+    clear_screen,
 )
+
+
+def _finish_display():
+    pause()
+    clear_screen()
 
 
 def display_equipments(equipments):
@@ -24,26 +33,79 @@ def display_equipments(equipments):
         print(draw_box(["No equipment records found."], title="EQUIPMENT"))
         return
 
-    print(divider())
-    print(info("EQUIPMENT"))
-    print(divider())
-
+    headers = [
+        "Equipment ID",
+        "Name",
+        "Category",
+        "Status",
+        "Last Service Date",
+        "Durability",
+    ]
+    rows = []
     for equipment in equipments:
-        current_wear = equipment.get("current_wear", equipment.get("wear", 0))
-        wear_line = f"Wear              : {current_wear}/100"
-        if current_wear >= 100:
-            wear_line += "  (NEEDS SERVICE)"
-
-        print(draw_box(
+        rows.append(
             [
-                f"Equipment ID      : {equipment['equipment_id']}",
-                f"Name              : {equipment['equipment_name']}",
-                f"Category          : {equipment['category']}",
-                f"Status            : {equipment['status']}",
-                f"Last Service Date : {equipment['last_service_date']}",
-                wear_line,
-            ],
-        ))
+                equipment["equipment_id"],
+                equipment["equipment_name"],
+                equipment["category"],
+                equipment["status"].title(),
+                equipment["last_service_date"],
+                f"{equipment['current_durability']}/100",
+            ]
+        )
+
+    widths = [
+        max(len(headers[index]), *(len(row[index]) for row in rows))
+        for index in range(len(headers))
+    ]
+    table_lines = [
+        " | ".join(header.ljust(widths[index]) for index, header in enumerate(headers)),
+        "-+-".join("-" * width for width in widths),
+    ]
+    table_lines.extend(
+        " | ".join(value.ljust(widths[index]) for index, value in enumerate(row))
+        for row in rows
+    )
+    print(draw_box(table_lines, title="ALL EQUIPMENT"))
+
+
+def display_bookings(bookings):
+    if not bookings:
+        print(draw_box(["No booking records found."], title="BOOKING LIST"))
+        return
+
+    headers = [
+        "Booking ID",
+        "Customer ID",
+        "Service ID",
+        "Schedule ID",
+        "Booking Date",
+        "Status",
+    ]
+    rows = [
+        [
+            booking_record["Booking_ID"],
+            booking_record["Customer_ID"],
+            booking_record["Service_ID"],
+            booking_record["Schedule_ID"],
+            booking_record["Booking_Date"],
+            booking_record["Status"],
+        ]
+        for booking_record in bookings
+    ]
+    widths = [
+        max(len(headers[index]), *(len(row[index]) for row in rows))
+        for index in range(len(headers))
+    ]
+    table_lines = [
+        " | ".join(header.ljust(widths[index]) for index, header in enumerate(headers)),
+        "-+-".join("-" * width for width in widths),
+    ]
+    table_lines.extend(
+        " | ".join(value.ljust(widths[index]) for index, value in enumerate(row))
+        for row in rows
+    )
+    print(draw_box(table_lines, title="BOOKING LIST"))
 
 
 def display_maintenance_records(records):
@@ -88,7 +150,7 @@ def display_summary(summary):
         )
 
 
-def maintenance_menu():
+def maintenance_menu(current_user_id):
     while True:
         print(render_menu(
             "MAINTENANCE STAFF",
@@ -108,15 +170,24 @@ def maintenance_menu():
 
         if choice == "1":
             display_equipments(get_equipments())
+            _finish_display()
 
         elif choice == "2":
-            # recompute first so time-decayed items flip to Need Service
             recompute_equipment_status()
             display_equipments(get_equipment_needing_service())
+            _finish_display()
 
         elif choice == "3":
+            display_equipments(get_equipments())
             equipment_id = input("Enter Equipment ID: ").strip()
-            new_status = input("Enter New Status: ").strip()
+            new_status = input(
+                "Enter New Status (Need Service/Operational): "
+            ).strip().casefold()
+            allowed_statuses = {
+                Status_Need_Service.casefold(): Status_Need_Service,
+                Status_Operational.casefold(): Status_Operational,
+            }
+            new_status = allowed_statuses.get(new_status, new_status)
 
             if equipment_status_change(equipment_id, new_status):
                 print(success(f"Equipment {equipment_id} status updated to {new_status}."))
@@ -124,31 +195,39 @@ def maintenance_menu():
                 print(error("Equipment not found."))
 
         elif choice == "4":
+            display_equipments(get_equipments())
             equipment_id = input("Enter Equipment ID: ").strip()
             maintenance_date = input(
                 "Enter Maintenance Date (YYYY-MM-DD): "
             ).strip()
-            cost = input("Enter Cost: ").strip()
-            staff_user_id = input("Enter Staff User ID: ").strip()
+            try:
+                cost = float(input("Enter Cost: ").strip())
+            except ValueError:
+                print(error("Cost must be a number."))
+                continue
             description = input("Enter Description: ").strip()
 
             record_maintenance(
                 equipment_id,
                 maintenance_date,
                 cost,
-                staff_user_id,
+                current_user_id,
                 description
             )
 
         elif choice == "5":
             display_maintenance_records(get_maintenance_records())
+            _finish_display()
 
         elif choice == "6":
             display_summary(maintenance_summary())
+            _finish_display()
 
         elif choice == "7":
+            display_bookings(booking.get_bookings())
             booking_id = input("Enter Booking ID to mark as Completed: ").strip()
-            booking_pkg.complete_booking(booking_id)
+            booking.complete_booking(booking_id)
+            pause()
 
         elif choice == "0":
             print(info("Logging out..."))

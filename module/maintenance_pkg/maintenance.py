@@ -19,7 +19,7 @@ Max_Durability = 100
 Status_Need_Service = "Need Service"
 Status_Operational = "Operational"
 
-Durabilitiy_Per_Use = 5
+Durability_Per_Use = 5
 
 
 def parse_equipment_parts(parts):
@@ -30,18 +30,23 @@ def parse_equipment_parts(parts):
     equipment_id = parts[0]
     equipment_name = parts[1]
     category = parts[2]
-    status = parts[3]
+    status = parts[3].strip()
+    if status.casefold() == "in repair":
+        status = Status_Need_Service
+    elif status.casefold() == Status_Need_Service.casefold():
+        status = Status_Need_Service
+    elif status.casefold() == Status_Operational.casefold():
+        status = Status_Operational
     last_service_date = parts[4]
 
-    stored_wear = 0
+    stored_durability = Max_Durability
     if len(parts) == 6:
         try:
-            stored_wear = int(parts[5])
+            stored_durability = int(parts[5])
         except (ValueError, TypeError):
-            stored_wear = 0
+            stored_durability = Max_Durability
 
-    # clamp into the valid 0..MAX_WEAR range
-    stored_wear = max(0, min(Max_Durability, stored_wear))
+    stored_durability = max(0, min(Max_Durability, stored_durability))
 
     return (
         equipment_id,
@@ -49,23 +54,8 @@ def parse_equipment_parts(parts):
         category,
         status,
         last_service_date,
-        stored_wear,
+        stored_durability,
     )
-
-
-def effective_wear(equipment):
-    # Time-based decay is computed ON READ (we deliberately do NOT mutate the
-    # file on every read). Effective wear = stored wear + 1 per day since the
-    # Last_Service_Date, clamped at MAX_WEAR. If the date is unparseable we
-    # fall back to the stored wear only.
-    stored_wear = equipment.get("durability", 0)
-    days = day_last_service(equipment.get("last_service_date"))
-
-    if days is None:
-        return min(Max_Durability, stored_wear)
-
-    return min(Max_Durability, stored_wear + days)
-
 
 
 def day_last_service(last_service_date):
@@ -77,14 +67,13 @@ def day_last_service(last_service_date):
     return max(0, (date.today() - last_service).days)
 
 def effective_durability(equipment):
-
     stored_durability = equipment.get("durability", 100)
     days = day_last_service(equipment.get("last_service_date"))
 
     if days is None:
-        return min(Max_Durability, stored_durability)
+        return max(0, min(Max_Durability, stored_durability))
 
-    return min(Max_Durability, stored_durability - days)
+    return max(0, min(Max_Durability, stored_durability - days))
 
 
 def write_equipment(update_fn):
@@ -168,23 +157,12 @@ def find_equipment(equipment_id):
 
 
 def get_equipment_needing_service():
-    # equipment needs service when either:
-    #   - (today - last_service_date) >= 60 days, OR
-    #   - its effective/current wear has reached MAX_WEAR (100).
+    # Equipment needs service when its effective durability reaches zero.
     # return the list of equipment dicts that are due for service
     needing_service = []
 
     for equipment in get_equipments():
-        due = False
-
-        days = day_last_service(equipment["last_service_date"])
-        if days is not None and days >= 60:
-            due = True
-
-        if equipment["current_wear"] >= Max_Durability:
-            due = True
-
-        if due:
+        if equipment["current_durability"] <= 0:
             needing_service.append(equipment)
 
     return needing_service
@@ -194,10 +172,14 @@ def equipment_status_change(equipment_id, new_status):
     # rewrite equipment.txt, updating the Status of the matching equipment row
     # while preserving (and normalizing to 6 fields) all other data.
     # return True on success, False if the equipment_id is not found.
+    if new_status not in (Status_Need_Service, Status_Operational):
+        print(error("Status must be Need Service or Operational."))
+        return False
+
     def update(parsed):
-        (eq_id, _name, _cat, _status, last_service_date, stored_wear) = parsed
+        (eq_id, _name, _cat, _status, last_service_date, stored_durability) = parsed
         if eq_id == equipment_id:
-            return (new_status, last_service_date, stored_wear)
+            return (new_status, last_service_date, stored_durability)
         return None
 
     return write_equipment(update)
@@ -206,35 +188,39 @@ def equipment_status_change(equipment_id, new_status):
 
 
 
-def durability_decrease(equipment_id, value = Durabilitiy_Per_Use):
+def durability_decrease(equipment_id, value=Durability_Per_Use):
     def update(parsed):
-        (eq_id, _name, _cat, status, last_service_date, stored_wear) = parsed
+        (eq_id, _name, _cat, status, last_service_date, stored_durability) = parsed
         if eq_id != equipment_id:
             return None
 
-        new_wear = max(0, min(Max_Durability, stored_wear + value))
+        new_durability = max(
+            0,
+            min(Max_Durability, stored_durability - value),
+        )
 
-        if new_wear >= Max_Durability:
+        if new_durability <= 0:
             status = Status_Need_Service
 
-        return (status, last_service_date, new_wear)
+        return (status, last_service_date, new_durability)
 
     return write_equipment(update)
 
 
 def recompute_equipment_status():
-    # for each equipment whose current/effective wear >= MAX_WEAR, set its
-    # Status to 'Need Service' and persist. gives the menu an explicit recompute
-    # path so time-based decay can flip Status without a usage event.
-    # return the list of equipment_ids that were flipped to 'Need Service'.
+    # Keep stored status consistent with effective durability.
+    # Return the IDs whose status changed.
     flipped = []
 
     for equipment in get_equipments():
-        if equipment["current_wear"] >= Max_Durability:
+        target_status = (
+            Status_Need_Service
+            if equipment["current_durability"] <= 0
+            else Status_Operational
+        )
+        if equipment["status"] != target_status.lower():
             flipped.append(equipment["equipment_id"])
-
-    for equipment_id in flipped:
-        equipment_status_change(equipment_id, Status_Need_Service)
+            equipment_status_change(equipment["equipment_id"], target_status)
 
     return flipped
 
@@ -305,11 +291,11 @@ def record_maintenance(equipment_id, maintenance_date, cost,
 
     # step 6: update the equipment status to reflect completed maintenance.
     # a completed maintenance makes it Operational, sets Last_Service_Date and
-    # resets Wear back to 0.
+    # resets Durability back to its full value.
     def _reset_after_maintenance(parsed):
-        (eq_id, _name, _cat, _status, _last, _wear) = parsed
+        (eq_id, _name, _cat, _status, _last, _durability) = parsed
         if eq_id == equipment_id:
-            return (Status_Operational, maintenance_date, 0)
+            return (Status_Operational, maintenance_date, Max_Durability)
         return None
 
     write_equipment(_reset_after_maintenance)
