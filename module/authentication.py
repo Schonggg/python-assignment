@@ -3,7 +3,7 @@ import sys
 import time
 import random
 from datetime import date, datetime, timedelta
-from .utils import (
+from module.utils import (
     ensure_file, 
     read_lines, 
     write_lines, 
@@ -180,7 +180,7 @@ def login():
 
         if matched_user:
             for i in range(101):
-                time.sleep(random.uniform(0.01, 0.1))
+                time.sleep(random.uniform(0.001, 0.01))
                 progress_bar(i, 100, prefix='Verifying:', suffix='Complete', length=50)
             user_role = matched_user["role"]
             user_name = matched_user["username"]

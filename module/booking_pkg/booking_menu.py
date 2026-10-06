@@ -1,4 +1,4 @@
-from ..authentication import (
+from module.authentication import (
     register_username,
     register_all
 )
@@ -22,7 +22,7 @@ from module.booking_pkg.booking import (
 
 
 
-from ..utils import(
+from module.utils import(
     render_menu,
     draw_box,
     divider,

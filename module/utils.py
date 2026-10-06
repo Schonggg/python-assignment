@@ -1,6 +1,7 @@
 import os
 import re
 import sys
+from datetime import date, datetime, timedelta
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(BASE_DIR, "data")
@@ -15,6 +16,16 @@ SERVICE_FILE = os.path.join(DATA_DIR, "service.txt")
 LOG_FILE = os.path.join(DATA_DIR, "logs.txt")
 USER_FILE = os.path.join(DATA_DIR, "users.txt")
 SERVICE_EQUIPMENT_FILE = os.path.join(DATA_DIR, "service_equipment.txt")
+
+TIME_SLOTS = [
+    "08:00-10:00",
+    "10:00-12:00",
+    "14:00-16:00",
+    "16:00-18:00",
+    "18:00-20:00",
+]
+
+TEAMS = ["Team Alpha", "Team Beta"]
 
 
 def ensure_file(path):
@@ -251,8 +262,7 @@ def validate_date(date_str):
         if month < 1 or month >12:
             return False
 
-        if date < 1 or date > 31:
-            return False
+        datetime(year, month, date)
 
         return True
 
@@ -262,6 +272,224 @@ def validate_date(date_str):
 
 def clear_screen():
     os.system("cls" if os.name == "nt" else "clear")
+
+
+def _ensure_trailing_newline(path):
+    # some data files are stored without a trailing newline. write_lines()
+    # appends in "a" mode, so without this guard a new record would be glued
+    # onto the previous line and corrupt it. ensure the file ends with "\n".
+    if not os.path.exists(path) or os.path.getsize(path) == 0:
+        return
+
+    with open(path, "rb") as handle:
+        handle.seek(-1, os.SEEK_END)
+        last_byte = handle.read(1)
+
+    if last_byte != b"\n":
+        with open(path, "a", encoding="utf-8") as handle:
+            handle.write("\n")
+
+def get_schedules():
+    schedules = []
+
+    lines = read_lines(SCHEDULE_FILE)
+
+    for line in lines[1:]:
+        if not line.strip():
+            continue
+
+        parts = line.split("|")
+
+        if len(parts) != 5:
+            continue
+
+        schedule = {
+            "Schedule_ID": parts[0],
+            "Date": parts[1],
+            "Time_Slot": parts[2],
+            "Team_Assigned": parts[3],
+            "Is_Booked": parts[4]
+        }
+
+        schedules.append(schedule)
+    return schedules
+
+def schedule_date_exists(date_str):
+    #return True when schedules.txt already has at least one roster row for
+    #the given date. used to make generation idempotent (one roster per day).
+    for schedule in get_schedules():
+        if schedule["Date"] == date_str:
+            return True
+
+    return False
+
+
+def modify_schedule_list(schedule_id, date_str=None, time_slot=None, team=None):
+    changes = {}
+
+    if date_str is not None:
+        if not validate_date(date_str):
+            print(error("Invalid date."))
+            print(info("Please use a valid date in YYYY-MM-DD format."))
+            return False
+        changes["Date"] = date_str
+
+    if time_slot is not None:
+        if time_slot not in TIME_SLOTS:
+            print(error("Invalid time slot."))
+            return False
+        changes["Time_Slot"] = time_slot
+
+    if team is not None:
+        if team not in TEAMS:
+            print(error("Invalid team."))
+            return False
+        changes["Team_Assigned"] = team
+
+    if not changes:
+        print(error("Enter at least one schedule value to modify."))
+        return False
+
+    lines = read_lines(SCHEDULE_FILE)
+    for index, line in enumerate(lines[1:], start=1):
+        parts = line.split("|")
+        if len(parts) != 5 or parts[0] != schedule_id:
+            continue
+
+        if parts[4].lower() == "yes":
+            print(warning("Booked schedules cannot be modified."))
+            return False
+
+        updated = parts.copy()
+        fields = {
+            "Date": 1,
+            "Time_Slot": 2,
+            "Team_Assigned": 3,
+        }
+        for field, value in changes.items():
+            updated[fields[field]] = value
+
+        for other_line in lines[1:]:
+            other = other_line.split("|")
+            if (
+                len(other) == 5
+                and other[0] != schedule_id
+                and other[1:4] == updated[1:4]
+            ):
+                print(error("Another schedule already has this date, time, and team."))
+                return False
+
+        lines[index] = "|".join(updated)
+        with open(SCHEDULE_FILE, "w", encoding="utf-8") as handle:
+            handle.write("\n".join(lines) + "\n")
+        return True
+
+    print(error(f"Schedule {schedule_id} was not found."))
+    return False
+
+
+def generate_schedule_for_date(date_str):
+    #generate the daily duty roster for a single date and append it to
+    #schedules.txt. each team (TEAMS) gets one row per time slot (TIME_SLOTS),
+    #so a full day is len(TEAMS) * len(TIME_SLOTS) rows (2 * 5 = 10 rows).
+    #
+    #idempotent: if a roster already exists for this date, nothing is written.
+    #returns the number of rows created (0 when the date already existed or the
+    #date is invalid).
+    if not validate_date(date_str):
+        print(error("Invalid date."))
+        print(info("Please use YYYY-MM-DD format."))
+        return 0
+
+    #de-dup by date so we never append a second roster for the same day
+    if schedule_date_exists(date_str):
+        print(warning(f"A schedule already exists for {date_str}."))
+        return 0
+
+    #avoid gluing the first new row onto the last existing line
+    _ensure_trailing_newline(SCHEDULE_FILE)
+
+    created = 0
+
+    #write one team-row per time slot, pairing each slot with both teams so the
+    #same (date, time_slot) ends up with one row per team.
+    for time_slot in TIME_SLOTS:
+        for team in TEAMS:
+            #generate the next ID AFTER the previous write so IDs stay
+            #sequential and unique even when writing many rows in a row.
+            schedule_id = primary_key(SCHEDULE_FILE)
+
+            new_schedule = (
+                f"{schedule_id}|"
+                f"{date_str}|"
+                f"{time_slot}|"
+                f"{team}|"
+                f"No"
+            )
+
+            write_lines(SCHEDULE_FILE, new_schedule)
+            created += 1
+
+    return created
+
+
+def generate_schedules(start_date, days):
+    #generate daily duty rosters for a run of consecutive days starting at
+    #start_date (inclusive). days must be a positive integer. returns the total
+    #number of rows created across all days (dates that already existed add 0).
+    if not validate_date(start_date):
+        print(error("Invalid start date."))
+        print(info("Please use YYYY-MM-DD format."))
+        return 0
+
+    try:
+        days = int(days)
+    except (TypeError, ValueError):
+        print(error("Days must be a whole number."))
+        return 0
+
+    if days < 1:
+        print(error("Days must be at least 1."))
+        return 0
+
+    #walk forward one calendar day at a time. we only use the standard library;
+    #datetime handles month/year rollover correctly.
+    current = datetime.strptime(start_date, "%Y-%m-%d")
+    total_created = 0
+
+    for _ in range(days):
+        date_str = current.strftime("%Y-%m-%d")
+        total_created += generate_schedule_for_date(date_str)
+        current += timedelta(days=1)
+
+    return total_created
+
+
+
+
+
+
+
+
+
+def generate_weekly_schedule():
+    start_date = date.today()
+    print(draw_box(
+        [f"{len(TEAMS)} teams on duty: " + ", ".join(TEAMS)]
+        + [f"Slot: {slot}" for slot in TIME_SLOTS],
+        title="WEEKLY SCHEDULE",
+    ))
+
+    created = generate_schedules(start_date.strftime("%Y-%m-%d"), 7)
+
+    if created > 0:
+        print(success(
+            f"Generated {created} schedule rows for the week starting "
+            f"{start_date.strftime('%Y-%m-%d')}."
+        ))
+    else:
+        print(info("The weekly schedule already exists; no rows were added."))
+
 
 
 if __name__ == "__main__":

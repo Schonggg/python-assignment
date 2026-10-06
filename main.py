@@ -2,11 +2,13 @@ def main():
     from module.utils import(
         clear_screen,
         render_menu,
-        error
+        error,
+        generate_weekly_schedule
     )
 
 
     clear_screen()
+    generate_weekly_schedule()
 
     while True:
         print(render_menu(
