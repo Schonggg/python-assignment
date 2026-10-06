@@ -1,4 +1,6 @@
-from ..utils import (
+import os
+
+from module.utils import (
     BOOKING_FILE,
     SERVICE_FILE,
     SCHEDULE_FILE,
@@ -14,6 +16,9 @@ from ..utils import (
     error,
     info
 )
+
+
+
 
 
 # SERVICE FUNCTIONS
@@ -763,6 +768,9 @@ def get_schedules():
         schedules.append(schedule)
     return schedules
 
+
+
+#PS
 def get_time_slots():
     slots = []
 
@@ -774,6 +782,9 @@ def get_time_slots():
 
     return slots
 
+
+
+#PS
 def is_schedule_available(schedule):
     if schedule is None:
         return False
@@ -788,13 +799,21 @@ def is_schedule_available(schedule):
 
     return True
 
-
+#PS
 def find_schedule_for(date, time_slot):
     for schedule in get_schedules():
-        if schedule["Date"] == date and schedule["Time_Slot"] == time_slot:
-            return schedule
+        if (
+            schedule["Date"] == date
+            and schedule["Time_Slot"] == time_slot
+            and is_schedule_available(schedule)
+        ):
+            return None
+        
     return None
 
+
+
+#PS
 def find_next_available_schedule(user_date, user_time_slot):
     available = [s for s in get_schedules() if is_schedule_available(s)]
     if not available:

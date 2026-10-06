@@ -34,6 +34,7 @@ def show_admin_menu():
     print("5. View All Bookings")
     print("6. View All Payments")
     print("7. Generate Report")
+    print("8. Modify Schedule")
     print("0. Back")
 
 
@@ -160,6 +161,44 @@ def generate_report():
             print("-", service)
 
 
+def edit_schedule():
+    from module.utils import TIME_SLOTS, get_schedules, modify_schedule_list
+
+    schedules = [
+        schedule
+        for schedule in get_schedules()
+        if schedule["Is_Booked"].lower() != "yes"
+    ]
+    if not schedules:
+        print("No unbooked schedules are available to modify.")
+        return
+
+    print("\nUnbooked schedules:")
+    for schedule in schedules:
+        print(
+            f"{schedule['Schedule_ID']} | {schedule['Date']} | "
+            f"{schedule['Time_Slot']} | {schedule['Team_Assigned']} | "
+            f"{schedule['Is_Booked']}"
+        )
+
+    schedule_id = input("Enter Schedule ID to modify: ").strip().upper()
+    date_str = input("New date (YYYY-MM-DD, blank to keep current): ").strip()
+    time_slot = input(
+        f"New time slot ({', '.join(TIME_SLOTS)}), blank to keep current: "
+    ).strip()
+    team = input(
+        "New team (Team Alpha/Team Beta, blank to keep current): "
+    ).strip()
+
+    if modify_schedule_list(
+        schedule_id,
+        date_str=date_str or None,
+        time_slot=time_slot or None,
+        team=team or None,
+    ):
+        print(f"Schedule {schedule_id} updated successfully.")
+
+
 def admin_menu():
     while True:
         clear_screen()
@@ -180,6 +219,8 @@ def admin_menu():
             view_all_payments()
         elif choice == "7":
             generate_report()
+        elif choice == "8":
+            edit_schedule()
         elif choice == "0":
             print("Returning to main menu...")
             break
