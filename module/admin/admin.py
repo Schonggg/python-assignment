@@ -68,7 +68,7 @@ def write_lines(path, lines):
         if lines:
             file.write("\n".join(lines) + "\n")
         else:
-            file.write("") # 如果列表为空，清空文件
+            file.write("")
 
 def generate_next_service_code():
     lines = read_lines(SERVICE_FILE)
@@ -81,7 +81,6 @@ def generate_next_service_code():
         number = int(last_code.replace("S", ""))
         return f"S{number + 1:03d}"
     except ValueError:
-        # 万一前面数据格式不对，退回按行数生成
         return f"S{len(lines) + 1:03d}"
 
 def admin_menu():
@@ -127,10 +126,8 @@ def add_service():
             break 
         print("Please enter again the service description (at least \"no\")")
 
-    # 5. 动态获取下一个新编号
     new_code = generate_next_service_code()
     
-    # 格式化储存：保持纯干净的字符串数据（用 | 隔开）
     new_line = f"{new_code}|{name}|{price}|{time}|{description}"
     
     lines = read_lines(SERVICE_FILE)
@@ -245,7 +242,7 @@ def remove_service():
             new_service_lines.append(line)
 
     write_lines(SERVICE_FILE, new_service_lines)
-    print(f"\nService [{delete_code}] removed successfully")  # 这里修复了原来的 updated 提示错误
+    print(f"\nService [{delete_code}] removed successfully")
 
 def view_all_services():
     print("\nView All Services")

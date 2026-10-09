@@ -157,8 +157,7 @@ def find_equipment(equipment_id):
 
 
 def get_equipment_needing_service():
-    # Equipment needs service when its effective durability reaches zero.
-    # return the list of equipment dicts that are due for service
+
     needing_service = []
 
     for equipment in get_equipments():
@@ -169,9 +168,7 @@ def get_equipment_needing_service():
 
 
 def equipment_status_change(equipment_id, new_status):
-    # rewrite equipment.txt, updating the Status of the matching equipment row
-    # while preserving (and normalizing to 6 fields) all other data.
-    # return True on success, False if the equipment_id is not found.
+
     if new_status not in (Status_Need_Service, Status_Operational):
         print(error("Status must be Need Service or Operational."))
         return False
@@ -208,8 +205,7 @@ def durability_decrease(equipment_id, value=Durability_Per_Use):
 
 
 def recompute_equipment_status():
-    # Keep stored status consistent with effective durability.
-    # Return the IDs whose status changed.
+
     flipped = []
 
     for equipment in get_equipments():
@@ -226,14 +222,11 @@ def recompute_equipment_status():
 
 
 def get_equipment_for_service(service_id):
-    # load the service<->equipment mapping (data/service_equipment.txt) and
-    # return the list of Equipment_IDs mapped to the given service_id.
-    # tolerant of a missing file (returns []).
+
     mapped = []
 
     lines = read_lines(SERVICE_EQUIPMENT_FILE)
 
-    # skip the header line
     for line in lines[1:]:
         parts = [part.strip() for part in line.split("|")]
 
@@ -251,34 +244,24 @@ def get_equipment_for_service(service_id):
 
 def record_maintenance(equipment_id, maintenance_date, cost,
                        staff_user_id, description):
-    # record a maintenance job against an equipment item.
-    # validate the equipment exists, the date is valid, and the cost parses.
-    # append the new record to maintenance.txt, then mark the equipment as
-    # Operational with its Last_Service_Date set to the maintenance date.
-    # return True on success, False otherwise.
 
-    # step 1: check the equipment exists
     if find_equipment(equipment_id) is None:
         print(warning("Invalid Equipment ID."))
         return False
 
-    # step 2: validate the maintenance date
     if not validate_date(maintenance_date):
         print(warning("Invalid date."))
         print(info("Please use YYYY-MM-DD format."))
         return False
 
-    # step 3: validate the cost
     try:
         cost_value = float(cost)
     except (ValueError, TypeError):
         print("Invalid cost. Please enter a number.")
         return False
 
-    # step 4: generate the new Maint_ID
     maint_id = primary_key(MAINTENANCE_FILE)
 
-    # step 5: append the maintenance record
     new_record = (
         f"{maint_id}|"
         f"{equipment_id}|"
@@ -289,9 +272,6 @@ def record_maintenance(equipment_id, maintenance_date, cost,
     )
     write_lines(MAINTENANCE_FILE, new_record)
 
-    # step 6: update the equipment status to reflect completed maintenance.
-    # a completed maintenance makes it Operational, sets Last_Service_Date and
-    # resets Durability back to its full value.
     def _reset_after_maintenance(parsed):
         (eq_id, _name, _cat, _status, _last, _durability) = parsed
         if eq_id == equipment_id:
@@ -300,14 +280,13 @@ def record_maintenance(equipment_id, maintenance_date, cost,
 
     write_equipment(_reset_after_maintenance)
 
-    # step 7: display confirmation
     print(draw_box(
         [
-            f"Maint ID    : {maint_id}"
-            f"Equipment ID: {equipment_id}"
-            f"Date        : {maintenance_date}"
-            f"Cost        : RM{cost_value:.2f}"
-            f"Staff       : {staff_user_id}"
+            f"Maint ID    : {maint_id}",
+            f"Equipment ID: {equipment_id}",
+            f"Date        : {maintenance_date}",
+            f"Cost        : RM{cost_value:.2f}",
+            f"Staff       : {staff_user_id}",
             f"Description : {description}"       
         ], "MAINTENANCE RECORDED"
     ))
@@ -316,16 +295,13 @@ def record_maintenance(equipment_id, maintenance_date, cost,
 
 
 def get_maintenance_records():
-    # read all maintenance records from maintenance.txt
-    # return them as a list of maintenance dictionaries
     records = []
     lines = read_lines(MAINTENANCE_FILE)
 
-    # skip the header line
     for line in lines[1:]:
         parts = [part.strip() for part in line.split("|")]
 
-        # a maintenance record should contain 6 fields
+
         if len(parts) != 6:
             continue
 
@@ -347,9 +323,7 @@ def get_maintenance_records():
 
 
 def maintenance_summary():
-    # aggregate maintenance records: total count, total cost, and a
-    # per-equipment breakdown (count and total cost per equipment_id).
-    # return the aggregated data so the menu layer can print it.
+
     records = get_maintenance_records()
 
     total_records = len(records)

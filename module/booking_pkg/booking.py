@@ -449,6 +449,43 @@ def complete_booking(booking_id):
         print(warning("Only confirmed bookings can be completed."))
         return False
 
+    from module.finance_pkg.finance import get_payment, record_payment
+
+    if not any(payment["booking_id"] == booking_id for payment in get_payment()):
+        service = find_service(booking["Service_ID"])
+        if service is None:
+            print(error("Service not found. Booking was not completed."))
+            return False
+
+        from datetime import date
+        from random import choice
+
+        base_amount = service["Price"]
+        discount_amount = 0.0
+        penalty_fee = calculate_penalty(booking["Attendance_Status"])
+        tax_amount = round(
+            (base_amount - discount_amount + penalty_fee) * 0.06,
+            2,
+        )
+        total_amount = round(
+            base_amount - discount_amount + penalty_fee + tax_amount,
+            2,
+        )
+
+        if not record_payment(
+            booking_id,
+            base_amount,
+            discount_amount,
+            penalty_fee,
+            tax_amount,
+            total_amount,
+            "Paid",
+            choice(["Cash", "E-wallet"]),
+            date.today().isoformat(),
+        ):
+            print(error("Payment could not be recorded. Booking was not completed."))
+            return False
+
     for record in bookings:
         if record["Booking_ID"] == booking_id:
             record["Status"] = "Completed"
@@ -497,6 +534,10 @@ def cancel_booking(booking_id):
 
     if booking is None:
         print(error("Booking not found."))
+        return False
+
+    if booking["Status"] == "Cancelled":
+        print(warning("Cancelled bookings cannot be cancelled again."))
         return False
 
     #a completed booking cannot be cancalled

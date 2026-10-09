@@ -149,7 +149,10 @@ def register_all(username):
         line_user = f"{code_user}|{username}|{password2}|Customer|{date.today()}\n"
 
         code_customer = primary_key(CUSTOMER_FILE)
-        line_customer = f"{code_customer}|{code_user}|{full_name}|{phone}|{email}|1|Bronze\n"
+        line_customer = (
+            f"{code_customer}|{code_user}|{full_name}|{phone}|{email}|"
+            "0|0|Bronze\n"
+        )
 
         write_lines(USER_FILE, line_user)
         write_lines(CUSTOMER_FILE, line_customer)
