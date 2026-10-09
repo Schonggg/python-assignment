@@ -1,4 +1,4 @@
 Equipment_ID|Equipment_Name|Category|Status|Last_Service_Date|Durability
-EQ001|High-Pressure Pump A|Cleaning Tool|Operational|2026-08-08|100
+EQ001|High-Pressure Pump A|Cleaning Tool|Operational|2026-08-08|95
 EQ002|Mobile Cleaning Van 1|Vehicle|Operational|2026-07-15|100
 EQ003|Steam Cleaner B|Cleaning Tool|Operational|2026-08-01|95

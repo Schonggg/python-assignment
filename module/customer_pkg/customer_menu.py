@@ -83,7 +83,6 @@ def customer_menu(username):
         choice = input("Choose an option: ").strip()
         
         if choice == "1":
-            clear_screen()
             display_services()
             pause()
             clear_screen()
@@ -96,7 +95,6 @@ def customer_menu(username):
                 continue
 
             #display all services
-            clear_screen()
             display_services()
 
             service_id = input("Enter Service ID: ").strip()
